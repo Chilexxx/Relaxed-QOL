@@ -1,0 +1,32 @@
+{
+	"required": false,
+	"package": "com.relaxedqol.mixin.extra",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"BossHealthOverlayMixin",
+		"ScreenshotMessageMixin",
+		"ChatComponentMixin",
+		"SkyRendererMixin",
+		"GuiGraphicsExtractorMixin",
+		"LocatorBarRendererMixin",
+		"LocatorDotsMixin",
+		"ClearViewEffectsMixin",
+		"ClearViewCameraMixin",
+		"ClearViewFogMixin",
+		"ClearViewAtmosphereMixin",
+		"ClearViewWaterFogMixin",
+		"GameRendererHandMixin",
+		"CullingEntityMixin",
+		"CullingBlockEntityMixin",
+		"SmoothTextMixin",
+		"CullingParticleMixin",
+		"HudCacheStateMixin",
+		"DownloadedPackSourceMixin",
+		"ResourcePackPushMixin",
+		"ChatLeaveMixin",
+		"ChatLeaveGuiMixin"
+	],
+	"injectors": {
+		"defaultRequire": 0
+	}
+}

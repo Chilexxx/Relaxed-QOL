@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "relaxed-qol",
+	"version": "${version}",
+	"name": "Relaxed QOL",
+	"description": "Relaxed QOL: quality-of-life tools for Minecraft",
+	"authors": [
+		"RelaxedClient"
+	],
+	"license": "LicenseRef-PolyForm-Strict-1.0.0",
+	"icon": "assets/relaxed-qol/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"com.relaxedqol.RelaxedQolMod"
+		],
+		"client": [
+			"com.relaxedqol.client.RelaxedQolClient"
+		]
+	},
+	"mixins": [
+		{
+			"config": "relaxed-qol.client.mixins.json",
+			"environment": "client"
+		},
+		{
+			"config": "relaxed-qol.extra.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

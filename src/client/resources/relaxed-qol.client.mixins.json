@@ -1,0 +1,24 @@
+{
+	"required": true,
+	"package": "com.relaxedqol.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"AbstractClientPlayerMixin",
+		"AbstractContainerScreenAccessor",
+		"ClientBrandRetrieverMixin",
+		"CameraMixin",
+		"CommandSuggestionsMixin",
+		"ConnectionMixin",
+		"EntityMixin",
+		"LightmapRenderStateExtractorMixin",
+		"ModStatusMixin",
+		"OptionInstanceAccessor",
+		"OptionsMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
