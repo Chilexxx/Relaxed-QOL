@@ -104,15 +104,23 @@ public final class Toasts {
                 y += h + 5;
                 continue;
             }
-            Render2D.shadow(g, x, yy, w, h, 8);
-            Render2D.roundRect(g, x, yy, w, h, 8, Theme.fade(0xEE101018, alpha));
-            Render2D.roundOutline(g, x, yy, w, h, 8, Theme.fade(Theme.withAlpha(t.color(), 0.55f), alpha));
-            Render2D.roundRect(g, x + 6, yy + 6, 3, h - 12, 1, Theme.fade(t.color(), alpha));
-            // Progress line at the bottom: how long it stays
-            int barW = Math.round((w - 20) * left);
-            if (barW > 0) Render2D.roundRect(g, x + 10, yy + h - 3, barW, 1, 0, Theme.fade(Theme.withAlpha(t.color(), 0.5f), alpha));
-            g.text(font, title, x + 15, yy + 6, (t.color() & 0xFFFFFF) | textAlpha, false);
-            if (!t.message().isEmpty()) g.text(font, t.message(), x + 15, yy + 17, (Theme.TEXT & 0xFFFFFF) | textAlpha, false);
+            // Default look: the theme's panel colour (solid enough to read on anything), a calm neutral edge with a
+            // faint hint of the pop-up's colour, a slim rounded colour bar, a soft white-ish title and dim text
+            int r = Theme.R_SURFACE;
+            Render2D.shadow(g, x, yy, w, h, r);
+            Render2D.roundRect(g, x, yy, w, h, r, Theme.fade(Theme.withAlpha(Theme.panel(), 0.92f), alpha));
+            Render2D.roundRect(g, x, yy, w, h, r, Theme.fade(Theme.withAlpha(t.color(), 0.07f), alpha));
+            Render2D.roundOutline(g, x, yy, w, h, r, Theme.fade(Theme.mix(Theme.BORDER, Theme.withAlpha(t.color(), 0.35f), 0.5f), alpha));
+            Render2D.roundRect(g, x + 7, yy + 7, 2, h - 14, 1, Theme.fade(t.color(), alpha));
+            // Time left: a thin line in a faint track inside the bottom edge
+            int trackW = w - 2 * r;
+            int barW = Math.round(trackW * left);
+            g.fill(x + r, yy + h - 3, x + r + trackW, yy + h - 2, Theme.fade(0x14FFFFFF, alpha));
+            if (barW > 0) g.fill(x + r, yy + h - 3, x + r + barW, yy + h - 2, Theme.fade(Theme.withAlpha(t.color(), 0.6f), alpha));
+            int titleColor = Theme.mix(t.color(), 0xFFFFFFFF, 0.55f);
+            int ty = t.message().isEmpty() ? yy + (h - 8) / 2 : yy + 6;
+            g.text(font, title, x + 15, ty, (titleColor & 0xFFFFFF) | textAlpha, false);
+            if (!t.message().isEmpty()) g.text(font, t.message(), x + 15, yy + 17, (Theme.TEXT_DIM & 0xFFFFFF) | textAlpha, false);
             y += h + 5;
         }
         g.pose().popMatrix();
