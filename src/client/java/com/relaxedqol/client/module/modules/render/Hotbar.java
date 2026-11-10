@@ -18,16 +18,15 @@ import net.minecraft.world.item.ItemStack;
  * places (so nothing else on the HUD moves).
  * - Hotbar: one panel in the style (glass in Clean Style), soft slots, a selection that slides from slot to slot with a
  * glow in the accent colour, the offhand item in its own box.
- * - Hearts &amp; hunger (optional): two smooth bars with the numbers in them - health red (green when poisoned, grey
- * with wither, icy when freezing) with absorption in gold and a light "just lost" part that drains after a hit;
- * hunger orange with saturation as a thin line.
+ * - Hearts &amp; hunger (optional): Minecraft's layout (10 hearts, 10 drumsticks, extra rows for more health) with
+ * the client's own icons - glossy see-through glass in Clean Style, clean solid icons otherwise. Poison, wither,
+ * freezing, absorption and the hunger effect have their own colours; hearts you just lost light up for a moment.
  * Vanilla Style keeps Minecraft's own hotbar (that is what the style is for).
  */
 public class Hotbar extends Module {
-    private final Setting<String> bars = addSetting(Setting.mode("Hearts & Hunger", "Clean Bars", "Clean Bars", "Minecraft"),
-        "Clean Bars: health and hunger as two smooth bars with numbers. Minecraft: the normal hearts and drumsticks");
-    private final Setting<Boolean> numbers = addSetting(new Setting<>("Numbers", true).showIf(() -> this.bars.getValue().equals("Clean Bars")),
-        "Health and hunger numbers in the bars");
+    private final Setting<String> bars = addSetting(Setting.mode("Hearts & Hunger", "Styled", "Styled", "Minecraft"),
+        "Styled: the normal hearts and drumsticks layout with the client's icons (glossy glass in Clean Style)."
+            + " Minecraft: Minecraft's own icons");
     private final Setting<Boolean> slotNumbers = addSetting(new Setting<>("Slot Numbers", false),
         "Small 1-9 in the corner of each slot");
     private final Setting<Boolean> slide = addSetting(new Setting<>("Smooth Slide", true),
@@ -37,7 +36,6 @@ public class Hotbar extends Module {
 
     private float selX = -1;
     private long lastFrame;
-    private float shownHealth = -1;
     private float lostHealth = -1;
     private float prevHealth = -1;
     private long lostAt;
@@ -52,9 +50,9 @@ public class Hotbar extends Module {
         return !VanillaStyle.on() && mc.player != null && !mc.player.isSpectator();
     }
 
-    /** The client draws hearts and hunger as bars. */
+    /** The client draws the hearts and hunger icons. */
     public boolean drawsBars() {
-        return drawsHotbar() && bars.getValue().equals("Clean Bars") && mc.gameMode != null && mc.gameMode.canHurtPlayer();
+        return drawsHotbar() && bars.getValue().equals("Styled") && mc.gameMode != null && mc.gameMode.canHurtPlayer();
     }
 
     // ------------------------------------------------------------------ look
@@ -149,60 +147,142 @@ public class Hotbar extends Module {
 
     // ------------------------------------------------------------------ hearts & hunger
 
-    /** Thin bars (4 px) with the number beside them, on the hearts' row - clear of the experience bar below. */
-    private static final int BAR_H = 4;
+    /** Icon shapes (9 x 8): # = filled, b = bone (drumstick handle). */
+    private static final String[] HEART = {
+        ".###.###.",
+        "#########",
+        "#########",
+        "#########",
+        ".#######.",
+        "..#####..",
+        "...###...",
+        "....#....",
+    };
+    private static final String[] FOOD = {
+        "....###..",
+        "...#####.",
+        "..#######",
+        "..######.",
+        "..#####..",
+        ".bb###...",
+        ".b.......",
+        "bb.......",
+    };
 
-    private int textY(GuiGraphicsExtractor g) {
-        return g.guiHeight() - 41;
+    /** Each icon pixel: 0 = outside, 1 = edge, 2 = inside, 3 = bone (worked out once). */
+    private static final int[][] HEART_MAP = map(HEART);
+    private static final int[][] FOOD_MAP = map(FOOD);
+
+    private static int[][] map(String[] rows) {
+        int h = rows.length;
+        int w = rows[0].length();
+        int[][] m = new int[h][w];
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                char c = rows[y].charAt(x);
+                if (c == '.') continue;
+                if (c == 'b') {
+                    m[y][x] = 3;
+                    continue;
+                }
+                boolean edge = false;
+                int[][] n = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+                for (int[] d : n) {
+                    int nx = x + d[0];
+                    int ny = y + d[1];
+                    if (nx < 0 || ny < 0 || nx >= w || ny >= h || rows[ny].charAt(nx) == '.') edge = true;
+                }
+                m[y][x] = edge ? 1 : 2;
+            }
+        }
+        return m;
     }
 
-    private int barY(GuiGraphicsExtractor g) {
-        return g.guiHeight() - 39;
+    /**
+     * One icon at (x, y). fill: how much of it is filled (0, 0.5 = left / right half, 1), fromRight = the half that
+     * fills is the right one (drumsticks). light / dark = the colour from top to bottom; flash = just lost (white).
+     */
+    private static void icon(GuiGraphicsExtractor g, int[][] m, int x, int y, float fill, boolean fromRight, int light,
+                             int dark, boolean flash) {
+        boolean clean = CleanStyle.on();
+        int h = m.length;
+        int w = m[0].length;
+        int split = fill >= 1f ? w : fill <= 0f ? 0 : 5;
+        for (int row = 0; row < h; row++) {
+            float t = row / (float) (h - 1);
+            int body = Theme.mix(light, dark, t);
+            // Drawn in runs of the same colour (a few fills per row instead of one per pixel)
+            int runStart = -1;
+            int runColor = 0;
+            for (int col = 0; col <= w; col++) {
+                int color = 0;
+                if (col < w) {
+                    int v = m[row][col];
+                    boolean filled = fromRight ? col >= w - split : col < split;
+                    if (v == 1) {
+                        // The edge: soft and see-through on glass, a crisp dark line otherwise
+                        color = clean ? (filled ? Theme.withAlpha(Theme.mix(dark, 0xFF000000, 0.45f), 0.85f) : 0x80FFFFFF)
+                            : 0xFF141414;
+                    } else if (v == 2 || v == 3) {
+                        if (!filled) color = clean ? 0x40000000 : 0xFF2B2B30;
+                        else if (flash) color = 0xE6FFFFFF;
+                        else if (v == 3) color = clean ? 0xE6F5EFE0 : 0xFFEDE6D3;
+                        else color = clean ? Theme.withAlpha(body, 0.88f) : body;
+                        // Gloss: a light spot top-left, like light on glass
+                        if (filled && v == 2 && row <= 2 && col <= 3 && (row + col) <= 4 && (row + col) >= 2) {
+                            color = Theme.mix(color, 0xFFFFFFFF, clean ? 0.65f : 0.45f);
+                        }
+                    }
+                }
+                if (color != runColor || col == w) {
+                    if (runStart >= 0 && runColor != 0) g.fill(x + runStart, y + row, x + col, y + row + 1, runColor);
+                    runStart = col;
+                    runColor = color;
+                }
+            }
+        }
     }
 
     public void renderHealth(GuiGraphicsExtractor g) {
         Player p = mc.player;
         if (p == null) return;
-        int x0 = g.guiWidth() / 2 - 91;
+        int left = g.guiWidth() / 2 - 91;
+        int top = g.guiHeight() - 39;
         float max = Math.max(1f, p.getMaxHealth());
         float hp = Math.max(0f, p.getHealth());
         float abs = p.getAbsorptionAmount();
-        // Smooth bar, and a light "just lost" part that drains a moment after a hit
+        // Hearts you just lost light up for a moment
         long now = System.currentTimeMillis();
-        if (shownHealth < 0) shownHealth = lostHealth = prevHealth = hp;
+        if (lostHealth < 0) lostHealth = prevHealth = hp;
         if (hp < prevHealth - 0.01f) lostAt = now;
         prevHealth = hp;
-        shownHealth += (hp - shownHealth) * 0.3f;
-        if (hp >= lostHealth) lostHealth = hp;
-        else if (now - lostAt > 450) lostHealth += (hp - lostHealth) * 0.12f;
-        int light = 0xFFFF6B74;
-        int dark = 0xFFD8323E;
-        if (p.hasEffect(MobEffects.POISON)) { light = 0xFFA5D66B; dark = 0xFF5E9A2E; }
-        if (p.hasEffect(MobEffects.WITHER)) { light = 0xFF8A8A8A; dark = 0xFF474747; }
-        if (p.isFullyFrozen()) { light = 0xFFBFEAFF; dark = 0xFF6CBDE8; }
-        // The number first, then the bar in the room that is left
-        int tx = x0;
-        if (numbers.getValue()) {
-            String t = fmt(hp);
-            g.text(mc.font, t, tx, textY(g), 0xFFFFFFFF, true);
-            tx += mc.font.width(t);
-            if (abs > 0) {
-                String a = "+" + fmt(abs);
-                g.text(mc.font, a, tx + 1, textY(g), 0xFFF5CF5B, true);
-                tx += mc.font.width(a) + 1;
+        if (hp >= lostHealth || now - lostAt > 600) lostHealth = hp;
+        int light = 0xFFFF7A84;
+        int dark = 0xFFC81E32;
+        if (p.hasEffect(MobEffects.POISON)) { light = 0xFFB6E07A; dark = 0xFF4F8A25; }
+        if (p.hasEffect(MobEffects.WITHER)) { light = 0xFF8C8C8C; dark = 0xFF2E2E2E; }
+        if (p.isFullyFrozen()) { light = 0xFFD2F1FF; dark = 0xFF5FB3E3; }
+        int hearts = (int) Math.ceil(max / 2f);
+        int absHearts = (int) Math.ceil(abs / 2f);
+        int total = hearts + absHearts;
+        int rows = (int) Math.ceil(total / 10f);
+        int rowH = Math.max(10 - (rows - 2), 3);
+        boolean shake = hp <= 4;
+        long tick = now / 50;
+        for (int i = total - 1; i >= 0; i--) {
+            int x = left + (i % 10) * 8;
+            int y = top - (i / 10) * rowH;
+            if (shake) y += (int) ((tick * 31 + i * 17) % 3) - 1;
+            if (i < hearts) {
+                float v = hp - i * 2;
+                float fill = v >= 2 ? 1f : v >= 1 ? 0.5f : 0f;
+                float lv = lostHealth - i * 2;
+                boolean flash = fill < 1f && lv > Math.max(0f, v);
+                icon(g, HEART_MAP, x, y, flash ? (lv >= 2 ? 1f : 0.5f) : fill, false, light, dark, flash);
+            } else {
+                float v = abs - (i - hearts) * 2;
+                icon(g, HEART_MAP, x, y, v >= 2 ? 1f : 0.5f, false, 0xFFFFE590, 0xFFD69A12, false);
             }
-            tx += 4;
-        }
-        int w = x0 + 81 - tx;
-        if (w < 12) return;
-        int y = barY(g);
-        track(g, tx, y, w);
-        int lost = Math.round(w * Math.min(1f, lostHealth / max));
-        if (lost > 0) Render2D.roundRect(g, tx, y, lost, BAR_H, BAR_H / 2, 0x80FFFFFF);
-        fill(g, tx, y, Math.round(w * Math.min(1f, shownHealth / max)), light, dark);
-        if (abs > 0) {
-            int aw = Math.max(2, Math.round(w * Math.min(1f, abs / max)));
-            fill(g, tx + w - aw, y, aw, 0xFFFFE08A, 0xFFE9A92B);
         }
     }
 
@@ -212,50 +292,21 @@ public class Hotbar extends Module {
         // On a horse etc. Minecraft shows its hearts there instead
         if (p.getVehicle() instanceof LivingEntity) return;
         int right = g.guiWidth() / 2 + 91;
+        int top = g.guiHeight() - 39;
         int food = p.getFoodData().getFoodLevel();
         float sat = p.getFoodData().getSaturationLevel();
         boolean hungry = p.hasEffect(MobEffects.HUNGER);
-        int light = hungry ? 0xFFC2D16B : 0xFFFFC66B;
-        int dark = hungry ? 0xFF7E8F2E : 0xFFE58A2A;
-        int end = right;
-        if (numbers.getValue()) {
-            String t = String.valueOf(food);
-            g.text(mc.font, t, right - mc.font.width(t), textY(g), 0xFFFFFFFF, true);
-            end -= mc.font.width(t) + 4;
+        int light = hungry ? 0xFFC9DA7A : 0xFFFFC27A;
+        int dark = hungry ? 0xFF5E7524 : 0xFFC8622A;
+        long tick = System.currentTimeMillis() / 50;
+        for (int i = 0; i < 10; i++) {
+            int x = right - i * 8 - 9;
+            int y = top;
+            // Like Minecraft: the drumsticks jitter when you have no saturation left
+            if (sat <= 0f && tick % (food * 3L + 1) == 0) y += (int) ((tick * 7 + i * 13) % 3) - 1;
+            int v = food - i * 2;
+            float fill = v >= 2 ? 1f : v == 1 ? 0.5f : 0f;
+            icon(g, FOOD_MAP, x, y, fill, true, light, dark, false);
         }
-        int x = g.guiWidth() / 2 + 10;
-        int w = end - x;
-        if (w < 12) return;
-        int y = barY(g);
-        track(g, x, y, w);
-        // Hunger empties from the left, like the drumsticks
-        int fw = Math.round(w * Math.min(1f, food / 20f));
-        fill(g, x + w - fw, y, fw, light, dark);
-        // Saturation: a lighter part over the end of the bar
-        int sw = Math.min(fw, Math.round(w * Math.min(1f, sat / 20f)));
-        if (sw > 1) Render2D.roundRect(g, x + w - sw, y, sw, BAR_H, BAR_H / 2, 0x55FFF6D8);
-    }
-
-    private void track(GuiGraphicsExtractor g, int x, int y, int w) {
-        if (CleanStyle.on()) {
-            Render2D.roundRect(g, x, y, w, BAR_H, BAR_H / 2, 0x55000000);
-            Render2D.roundRect(g, x, y, w, BAR_H, BAR_H / 2, 0x10FFFFFF);
-        } else {
-            Render2D.roundRect(g, x, y, w, BAR_H, BAR_H / 2, Theme.withAlpha(Theme.panel(), 0.85f));
-        }
-    }
-
-    /** A filled part with a soft left-to-right shade and a little light on its top edge. */
-    private static void fill(GuiGraphicsExtractor g, int x, int y, int w, int light, int dark) {
-        if (w <= 0) return;
-        Render2D.clipRounded(g, x, y, w, BAR_H, BAR_H / 2, () -> {
-            Render2D.horizontalGradient(g, x, y, w, BAR_H, dark, light);
-            g.fill(x, y, x + w, y + 1, 0x40FFFFFF);
-        });
-    }
-
-    private static String fmt(float v) {
-        float rounded = Math.round(v * 2) / 2f;
-        return rounded == (int) rounded ? String.valueOf((int) rounded) : String.valueOf(rounded);
     }
 }
