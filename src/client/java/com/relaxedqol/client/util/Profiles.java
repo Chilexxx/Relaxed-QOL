@@ -130,18 +130,36 @@ public final class Profiles {
         }
     }
 
-    /** A new profile from the current settings, and switches to it. False when the name is empty or taken. */
+    /** Every setting as the client ships it (taken at start-up, before the saved settings are loaded). */
+    private static Properties defaults;
+
+    /** Called once at start-up, right before the saved settings are loaded. */
+    public static void rememberDefaults() {
+        if (defaults == null) defaults = ConfigManager.snapshot();
+    }
+
+    /**
+     * A new profile that starts from the default settings (to set up from scratch), and switches to it. The settings
+     * you had stay in the profile you leave. False when the name is empty or taken.
+     */
     public static boolean create(String name) {
         String n = clean(name);
         if (n.isEmpty() || exists(n) || n.equalsIgnoreCase(active())) return false;
         saveActive();
+        if (defaults != null) {
+            Properties fresh = new Properties();
+            fresh.putAll(defaults);
+            ConfigManager.apply(fresh);
+            ConfigManager.save(ConfigManager.DEFAULT);
+        }
         try {
             ConfigManager.write(dir().resolve(n + ".properties"), ConfigManager.snapshot());
             setActive(n);
         } catch (IOException e) {
             return false;
         }
-        Toasts.show("Profile created", n + " - a copy of your current settings", Theme.SUCCESS, 3500);
+        com.relaxedqol.client.gui.ClickGuiScreen.styleChanged();
+        Toasts.show("Profile created: " + n, "Starts from the default settings - set it up your way", Theme.SUCCESS, 4000);
         return true;
     }
 
@@ -188,9 +206,21 @@ public final class Profiles {
         }
     }
 
-    /** Deletes a profile (never the one in use). */
+    /**
+     * Deletes a profile. The one in use can be deleted too: the client first switches to another profile (false when it
+     * is the only one).
+     */
     public static boolean delete(String name) {
-        if (name.equals(active())) return false;
+        if (name.equals(active())) {
+            String other = null;
+            for (String p : list()) {
+                if (!p.equals(name) && exists(p)) {
+                    other = p;
+                    break;
+                }
+            }
+            if (other == null || !switchTo(other)) return false;
+        }
         try {
             Files.deleteIfExists(dir().resolve(name + ".properties"));
             Properties links = links();

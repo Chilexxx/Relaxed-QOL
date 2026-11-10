@@ -56,6 +56,7 @@ public class RelaxedQolClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             com.relaxedqol.client.waypoint.WaypointManager.load();
             ConfigManager.loadFriends();
+            com.relaxedqol.client.util.Profiles.rememberDefaults();
             ConfigManager.load(ConfigManager.DEFAULT);
             // And the names you picked yourself
             com.relaxedqol.client.module.modules.lovercraft.LoverFellaMode lover =

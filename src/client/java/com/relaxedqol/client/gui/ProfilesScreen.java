@@ -100,7 +100,7 @@ public class ProfilesScreen extends WindowScreen {
         int sx = contentX() + contentW() - sideW();
         int sw = sideW();
         pill(() -> "+ New Profile", contentX() + contentW() - 84, contentY(), 84, 14, () ->
-            TextPrompt.open(this, "New profile", "e.g. PvP, Building, Recording - starts as a copy of your settings", "", name -> {
+            TextPrompt.open(this, "New profile", "e.g. PvP, Building, Recording - starts from the default settings", "", name -> {
                 if (!Profiles.create(name)) say("That name is empty or already used");
                 else picked = Profiles.clean(name);
                 relist();
@@ -122,9 +122,8 @@ public class ProfilesScreen extends WindowScreen {
                 relist();
             });
         }, 0, () -> false);
-        pill(() -> deleteArmed != null && deleteArmed.equals(picked) && System.currentTimeMillis() - deleteArmedAt < 3000
-            ? "Sure?" : "Delete", sx + sw / 2 + 2, y, sw - sw / 2 - 2, 15, this::askDelete, Theme.DANGER,
-            () -> deleteArmed != null && deleteArmed.equals(picked) && System.currentTimeMillis() - deleteArmedAt < 3000);
+        pill(() -> deleteArmed() ? "Click again" : "Delete", sx + sw / 2 + 2, y, sw - sw / 2 - 2, 15, this::askDelete,
+            Theme.DANGER, this::deleteArmed);
         y += 19;
         pill(() -> {
             String server = Profiles.currentServer();
@@ -139,23 +138,32 @@ public class ProfilesScreen extends WindowScreen {
         }, 0, () -> picked != null && picked.equals(Profiles.linkedTo(Profiles.currentServer())));
     }
 
+    private boolean deleteArmed() {
+        return deleteArmed != null && deleteArmed.equals(picked) && System.currentTimeMillis() - deleteArmedAt < 4000;
+    }
+
+    /** First click asks ("Click again"), the second deletes - also the profile in use (it switches away first). */
     private void askDelete() {
         if (picked == null) return;
-        if (picked.equals(Profiles.active())) {
-            say("Switch to another profile first - this one is in use");
+        if (!deleteArmed()) {
+            if (profiles.size() <= 1) {
+                Toasts.show("Can't delete " + picked, "It is your only profile - make another one first", Theme.WARNING, 3500);
+                return;
+            }
+            deleteArmed = picked;
+            deleteArmedAt = System.currentTimeMillis();
             return;
         }
-        long now = System.currentTimeMillis();
-        if (picked.equals(deleteArmed) && now - deleteArmedAt < 3000) {
-            Profiles.delete(picked);
-            say("Deleted " + picked);
-            deleteArmed = null;
+        String name = picked;
+        deleteArmed = null;
+        if (Profiles.delete(name)) {
+            Toasts.show("Profile deleted", name, Theme.DANGER, 3000);
             picked = Profiles.active();
-            relist();
         } else {
-            deleteArmed = picked;
-            deleteArmedAt = now;
+            Toasts.show("Couldn't delete " + name, "It is your only profile", Theme.WARNING, 3500);
         }
+        relist();
+        rebuildWidgets();
     }
 
     // ------------------------------------------------------------------ share tab

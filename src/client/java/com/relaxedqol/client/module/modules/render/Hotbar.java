@@ -63,22 +63,27 @@ public class Hotbar extends Module {
         return Math.min(h / 2, Math.max(2, Theme.R_SURFACE));
     }
 
-    /** The panel behind the slots / a bar: glass in Clean Style, the theme's panel otherwise. */
+    /**
+     * The panel behind the slots: frosted glass in Clean Style (see-through, a light frost, a shine fading down from
+     * the top, a thin bright edge), the theme's panel otherwise (LoverFella's navy while that is on).
+     */
     private void panel(GuiGraphicsExtractor g, int x, int y, int w, int h, int r) {
         float a = opacity.getValue() / 100f;
         if (a <= 0.01f) return;
         if (CleanStyle.on()) {
-            int glass = Theme.mix(Theme.PANEL, Theme.accent(), 0.08f + com.relaxedqol.client.module.modules.client.ClickGUI.glassTint() * 0.4f);
-            Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(glass, 0.62f * a));
+            int tint = Theme.mix(0xFF0A0B0E, Theme.accent(), com.relaxedqol.client.module.modules.client.ClickGUI.glassTint() * 0.5f);
+            Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(tint, 0.38f * a));
+            Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(0xFFFFFFFF, 0.06f * a));
             if (Theme.SHEEN > 0.01f) {
-                Render2D.roundRect(g, x + 1, y + 1, w - 2, h / 2, Math.max(0, r - 1),
-                    Theme.withAlpha(0xFFFFFFFF, Math.min(0.14f, 0.06f * Theme.SHEEN) * a));
+                int top = Theme.withAlpha(0xFFFFFFFF, Math.min(0.22f, 0.10f * Theme.SHEEN) * a);
+                Render2D.clipRounded(g, x, y, w, h, r, () -> g.fillGradient(x, y, x + w, y + h * 2 / 3, top, 0x00FFFFFF));
             }
-            Render2D.roundOutline(g, x, y, w, h, r, Theme.withAlpha(0xFFFFFFFF, 0.22f * a));
+            Render2D.roundOutline(g, x, y, w, h, r, Theme.withAlpha(0xFFFFFFFF, 0.30f * Math.max(0.5f, a)));
             return;
         }
-        Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(Theme.panel(), 0.85f * a));
-        Render2D.roundOutline(g, x, y, w, h, r, Theme.fade(Theme.BORDER, Math.max(0.4f, a)));
+        Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(Theme.panel(), 0.80f * a));
+        Render2D.clipRounded(g, x, y, w, h, r, () -> g.fill(x, y + 1, x + w, y + 2, Theme.withAlpha(0xFFFFFFFF, 0.05f * a)));
+        Render2D.roundOutline(g, x, y, w, h, r, Theme.fade(Theme.BORDER, Math.max(0.5f, a)));
     }
 
     // ------------------------------------------------------------------ hotbar
@@ -91,11 +96,10 @@ public class Hotbar extends Module {
         int y = g.guiHeight() - 22;
         int r = radius(22);
         int accent = Theme.accent();
+        boolean clean = CleanStyle.on();
         panel(g, x, y, 182, 22, r);
-        int sr = Math.max(1, Math.min(r - 1, Theme.R_CONTROL + 1));
-        for (int i = 0; i < 9; i++) {
-            Render2D.roundRect(g, x + 2 + i * 20, y + 2, 18, 18, sr, 0x12FFFFFF);
-        }
+        // Quiet dividers between the slots instead of boxes
+        for (int i = 1; i < 9; i++) g.fill(x + 1 + i * 20, y + 6, x + 2 + i * 20, y + 16, clean ? 0x18FFFFFF : 0x12FFFFFF);
         // The selection glides to the picked slot
         int sel = p.getInventory().getSelectedSlot();
         float target = x + 1 + sel * 20;
@@ -105,9 +109,17 @@ public class Hotbar extends Module {
         if (selX < 0 || !slide.getValue() || Theme.ANIM <= 0.01f || Math.abs(selX - target) > 400) selX = target;
         else selX += (target - selX) * Math.min(1f, dt * 18f * Theme.ANIM);
         int sx = Math.round(selX);
-        Render2D.glow(g, sx, y + 1, 20, 20, accent, 1f);
-        Render2D.roundRect(g, sx, y + 1, 20, 20, sr + 1, Theme.withAlpha(accent, CleanStyle.on() ? 0.22f : 0.28f));
-        Render2D.roundOutline(g, sx, y + 1, 20, 20, sr + 1, Theme.withAlpha(accent, 0.9f));
+        int sr = Math.max(2, Math.min(r - 1, Theme.R_CONTROL + 2));
+        Render2D.glow(g, sx + 1, y + 2, 18, 18, accent, 0.7f);
+        if (clean) {
+            // A brighter pane of glass with a thin accent edge and a short accent line at the bottom
+            Render2D.roundRect(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(Theme.mix(0xFFFFFFFF, accent, 0.35f), 0.20f));
+            Render2D.roundOutline(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(Theme.mix(0xFFFFFFFF, accent, 0.6f), 0.75f));
+        } else {
+            Render2D.roundRect(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(accent, 0.22f));
+            Render2D.roundOutline(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(accent, 0.85f));
+        }
+        Render2D.roundRect(g, sx + 7, y + 19, 6, 1, 0, accent);
         // Items
         for (int i = 0; i < 9; i++) {
             ItemStack stack = p.getInventory().getItem(i);
@@ -118,19 +130,18 @@ public class Hotbar extends Module {
             }
             if (slotNumbers.getValue()) {
                 g.pose().pushMatrix();
-                g.pose().translate(x + 4 + i * 20, y + 3);
+                g.pose().translate(x + 3 + i * 20, y + 2.5f);
                 g.pose().scale(0.5f, 0.5f);
-                g.text(mc.font, String.valueOf(i + 1), 0, 0, i == sel ? 0xFFFFFFFF : 0x90FFFFFF, false);
+                g.text(mc.font, String.valueOf(i + 1), 0, 0, i == sel ? 0xD0FFFFFF : 0x60FFFFFF, false);
                 g.pose().popMatrix();
             }
         }
-        // Offhand in its own box on the side of the off hand
+        // Offhand in its own small pane on the side of the off hand
         ItemStack off = p.getOffhandItem();
         if (!off.isEmpty()) {
             boolean left = p.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT;
             int ox = left ? x - 26 : x + 182 + 4;
             panel(g, ox, y, 22, 22, r);
-            Render2D.roundRect(g, ox + 2, y + 2, 18, 18, sr, 0x12FFFFFF);
             g.item(off, ox + 3, y + 3);
             g.itemDecorations(mc.font, off, ox + 3, y + 3);
         }
@@ -138,14 +149,21 @@ public class Hotbar extends Module {
 
     // ------------------------------------------------------------------ hearts & hunger
 
-    private static final int H = 9;
+    /** Thin bars (4 px) with the number beside them, on the hearts' row - clear of the experience bar below. */
+    private static final int BAR_H = 4;
+
+    private int textY(GuiGraphicsExtractor g) {
+        return g.guiHeight() - 41;
+    }
+
+    private int barY(GuiGraphicsExtractor g) {
+        return g.guiHeight() - 39;
+    }
 
     public void renderHealth(GuiGraphicsExtractor g) {
         Player p = mc.player;
         if (p == null) return;
-        int x = g.guiWidth() / 2 - 91;
-        int y = g.guiHeight() - 39;
-        int w = 81;
+        int x0 = g.guiWidth() / 2 - 91;
         float max = Math.max(1f, p.getMaxHealth());
         float hp = Math.max(0f, p.getHealth());
         float abs = p.getAbsorptionAmount();
@@ -157,25 +175,34 @@ public class Hotbar extends Module {
         shownHealth += (hp - shownHealth) * 0.3f;
         if (hp >= lostHealth) lostHealth = hp;
         else if (now - lostAt > 450) lostHealth += (hp - lostHealth) * 0.12f;
-        int color = 0xFFE5484D;
-        if (p.hasEffect(MobEffects.POISON)) color = 0xFF7CB342;
-        if (p.hasEffect(MobEffects.WITHER)) color = 0xFF5B5B5B;
-        if (p.isFullyFrozen()) color = 0xFF8FD3FF;
-        int r = Math.min(4, Math.max(1, Theme.R_CONTROL));
-        track(g, x, y, w, r);
-        int lost = Math.round(w * Math.min(1f, lostHealth / max));
-        if (lost > 0) Render2D.roundRect(g, x, y, lost, H, r, 0x60FFFFFF);
-        int fill = Math.round(w * Math.min(1f, shownHealth / max));
-        if (fill > 0) Render2D.roundRect(g, x, y, fill, H, r, color);
-        if (fill > 2) g.fill(x + 1, y + 1, x + fill - 1, y + 2, 0x30FFFFFF);
-        // Absorption: gold, over the end of the bar
-        if (abs > 0) {
-            int aw = Math.round(w * Math.min(1f, abs / max));
-            Render2D.roundRect(g, x + w - aw, y + H - 3, aw, 3, 1, 0xFFF2C14E);
-        }
+        int light = 0xFFFF6B74;
+        int dark = 0xFFD8323E;
+        if (p.hasEffect(MobEffects.POISON)) { light = 0xFFA5D66B; dark = 0xFF5E9A2E; }
+        if (p.hasEffect(MobEffects.WITHER)) { light = 0xFF8A8A8A; dark = 0xFF474747; }
+        if (p.isFullyFrozen()) { light = 0xFFBFEAFF; dark = 0xFF6CBDE8; }
+        // The number first, then the bar in the room that is left
+        int tx = x0;
         if (numbers.getValue()) {
-            String t = fmt(hp) + (abs > 0 ? " +" + fmt(abs) : "");
-            g.text(mc.font, t, x + 4, y + 1, 0xFFFFFFFF, true);
+            String t = fmt(hp);
+            g.text(mc.font, t, tx, textY(g), 0xFFFFFFFF, true);
+            tx += mc.font.width(t);
+            if (abs > 0) {
+                String a = "+" + fmt(abs);
+                g.text(mc.font, a, tx + 1, textY(g), 0xFFF5CF5B, true);
+                tx += mc.font.width(a) + 1;
+            }
+            tx += 4;
+        }
+        int w = x0 + 81 - tx;
+        if (w < 12) return;
+        int y = barY(g);
+        track(g, tx, y, w);
+        int lost = Math.round(w * Math.min(1f, lostHealth / max));
+        if (lost > 0) Render2D.roundRect(g, tx, y, lost, BAR_H, BAR_H / 2, 0x80FFFFFF);
+        fill(g, tx, y, Math.round(w * Math.min(1f, shownHealth / max)), light, dark);
+        if (abs > 0) {
+            int aw = Math.max(2, Math.round(w * Math.min(1f, abs / max)));
+            fill(g, tx + w - aw, y, aw, 0xFFFFE08A, 0xFFE9A92B);
         }
     }
 
@@ -184,34 +211,47 @@ public class Hotbar extends Module {
         if (p == null) return;
         // On a horse etc. Minecraft shows its hearts there instead
         if (p.getVehicle() instanceof LivingEntity) return;
-        int w = 81;
-        int x = g.guiWidth() / 2 + 91 - w;
-        int y = g.guiHeight() - 39;
+        int right = g.guiWidth() / 2 + 91;
         int food = p.getFoodData().getFoodLevel();
         float sat = p.getFoodData().getSaturationLevel();
-        int color = p.hasEffect(MobEffects.HUNGER) ? 0xFF8D9B3A : 0xFFE8A13A;
-        int r = Math.min(4, Math.max(1, Theme.R_CONTROL));
-        track(g, x, y, w, r);
-        // Hunger empties from the left, like the drumsticks
-        int fill = Math.round(w * Math.min(1f, food / 20f));
-        if (fill > 0) Render2D.roundRect(g, x + w - fill, y, fill, H, r, color);
-        if (fill > 2) g.fill(x + w - fill + 1, y + 1, x + w - 1, y + 2, 0x30FFFFFF);
-        int sw = Math.round(w * Math.min(1f, sat / 20f));
-        if (sw > 0) Render2D.roundRect(g, x + w - sw, y + H - 2, sw, 2, 1, 0xFFFFE08A);
+        boolean hungry = p.hasEffect(MobEffects.HUNGER);
+        int light = hungry ? 0xFFC2D16B : 0xFFFFC66B;
+        int dark = hungry ? 0xFF7E8F2E : 0xFFE58A2A;
+        int end = right;
         if (numbers.getValue()) {
             String t = String.valueOf(food);
-            g.text(mc.font, t, x + w - 4 - mc.font.width(t), y + 1, 0xFFFFFFFF, true);
+            g.text(mc.font, t, right - mc.font.width(t), textY(g), 0xFFFFFFFF, true);
+            end -= mc.font.width(t) + 4;
+        }
+        int x = g.guiWidth() / 2 + 10;
+        int w = end - x;
+        if (w < 12) return;
+        int y = barY(g);
+        track(g, x, y, w);
+        // Hunger empties from the left, like the drumsticks
+        int fw = Math.round(w * Math.min(1f, food / 20f));
+        fill(g, x + w - fw, y, fw, light, dark);
+        // Saturation: a lighter part over the end of the bar
+        int sw = Math.min(fw, Math.round(w * Math.min(1f, sat / 20f)));
+        if (sw > 1) Render2D.roundRect(g, x + w - sw, y, sw, BAR_H, BAR_H / 2, 0x55FFF6D8);
+    }
+
+    private void track(GuiGraphicsExtractor g, int x, int y, int w) {
+        if (CleanStyle.on()) {
+            Render2D.roundRect(g, x, y, w, BAR_H, BAR_H / 2, 0x55000000);
+            Render2D.roundRect(g, x, y, w, BAR_H, BAR_H / 2, 0x10FFFFFF);
+        } else {
+            Render2D.roundRect(g, x, y, w, BAR_H, BAR_H / 2, Theme.withAlpha(Theme.panel(), 0.85f));
         }
     }
 
-    private void track(GuiGraphicsExtractor g, int x, int y, int w, int r) {
-        if (CleanStyle.on()) {
-            Render2D.roundRect(g, x, y, w, H, r, 0x50000000);
-            Render2D.roundOutline(g, x, y, w, H, r, 0x30FFFFFF);
-        } else {
-            Render2D.roundRect(g, x, y, w, H, r, Theme.withAlpha(Theme.panel(), 0.8f));
-            Render2D.roundOutline(g, x, y, w, H, r, Theme.BORDER);
-        }
+    /** A filled part with a soft left-to-right shade and a little light on its top edge. */
+    private static void fill(GuiGraphicsExtractor g, int x, int y, int w, int light, int dark) {
+        if (w <= 0) return;
+        Render2D.clipRounded(g, x, y, w, BAR_H, BAR_H / 2, () -> {
+            Render2D.horizontalGradient(g, x, y, w, BAR_H, dark, light);
+            g.fill(x, y, x + w, y + 1, 0x40FFFFFF);
+        });
     }
 
     private static String fmt(float v) {
