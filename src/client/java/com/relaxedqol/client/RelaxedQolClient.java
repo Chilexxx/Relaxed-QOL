@@ -214,7 +214,8 @@ public class RelaxedQolClient implements ClientModInitializer {
             if (tradeShot != null) tradeShot.onChat(message.getString());
         });
         // Setting profiles: a server linked to a profile switches to it when you join
-        ClientPlayConnectionEvents.JOIN.register((listener, sender, client) -> client.execute(com.relaxedqol.client.util.Profiles::onJoin));
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client ->
+            com.relaxedqol.client.util.Profiles.tick());
         ClientPlayConnectionEvents.DISCONNECT.register((listener, client) -> {
             // Nothing from this server may show on the next one
             com.relaxedqol.client.module.modules.misc.PlayerAlert alert =

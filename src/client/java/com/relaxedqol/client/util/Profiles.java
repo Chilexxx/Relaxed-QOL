@@ -72,7 +72,7 @@ public final class Profiles {
         List<String> out = new ArrayList<>();
         try (Stream<Path> files = Files.list(dir())) {
             files.map(p -> p.getFileName().toString())
-                .filter(f -> f.endsWith(".properties"))
+                .filter(f -> f.endsWith(".properties") && !f.equals("servers.properties"))
                 .map(f -> f.substring(0, f.length() - ".properties".length()))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .forEach(out::add);
@@ -253,14 +253,29 @@ public final class Profiles {
 
     /** The address of the server you are on, lower case without the default port ("" in single player). */
     public static String currentServer() {
-        var data = Minecraft.getInstance().getCurrentServer();
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return "";
+        var data = mc.getCurrentServer();
         if (data == null || data.ip == null) return "";
-        return data.ip.toLowerCase(Locale.ROOT).trim().replaceFirst(":25565$", "");
+        return normal(data.ip);
+    }
+
+    /** "Play.Server.net.:25565" -> "play.server.net" (so the same server always gives the same name). */
+    private static String normal(String address) {
+        String a = address.toLowerCase(Locale.ROOT).trim().replaceFirst(":25565$", "");
+        while (a.endsWith(".")) a = a.substring(0, a.length() - 1);
+        return a;
     }
 
     /** The profile linked to a server ("" = none). */
     public static String linkedTo(String server) {
-        return server.isEmpty() ? "" : links().getProperty(server, "");
+        if (server.isEmpty()) return "";
+        Properties p = links();
+        String direct = p.getProperty(server);
+        if (direct != null) return direct;
+        // Saved with another spelling of the same address
+        for (String k : p.stringPropertyNames()) if (normal(k).equals(server)) return p.getProperty(k);
+        return "";
     }
 
     /** Links (or with null, unlinks) the current server to a profile. */
@@ -280,9 +295,18 @@ public final class Profiles {
         return out;
     }
 
-    /** From joining a server: switch to its linked profile. */
-    public static void onJoin() {
-        String profile = linkedTo(currentServer());
+    private static String lastServer = "";
+
+    /**
+     * Every tick: once you are on a (different) server, switch to the profile linked to it. Checked by tick instead of
+     * at the join moment, because the server's address isn't always known yet when the join starts.
+     */
+    public static void tick() {
+        String server = currentServer();
+        if (server.equals(lastServer)) return;
+        lastServer = server;
+        if (server.isEmpty()) return;
+        String profile = linkedTo(server);
         if (!profile.isEmpty() && !profile.equals(active()) && exists(profile)) switchTo(profile);
     }
 

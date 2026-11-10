@@ -74,9 +74,17 @@ public class ProfilesScreen extends WindowScreen {
         return Math.max(118, contentW() * 38 / 100);
     }
 
+    /** Opened on a server that has a profile: that profile is the one picked. */
+    private boolean pickedLinked;
+
     @Override
     protected void initContent() {
         relist();
+        if (!pickedLinked) {
+            pickedLinked = true;
+            String linked = Profiles.linkedTo(Profiles.currentServer());
+            if (!linked.isEmpty() && profiles.contains(linked)) picked = linked;
+        }
         int x = contentX();
         int y = contentY();
         int tw = 84;
@@ -245,6 +253,14 @@ public class ProfilesScreen extends WindowScreen {
         UiBits.well(g, x, top, lw, h);
         String active = Profiles.active();
         Map<String, String> links = Profiles.allLinks();
+        String here = Profiles.currentServer();
+        if (!here.isEmpty()) {
+            String linked = Profiles.linkedTo(here);
+            String info = linked.isEmpty() ? here + ": no profile linked" : here + " uses " + linked;
+            int iw = contentW() - 182 - 90;
+            if (iw > 40) g.text(font, Theme.ellipsize(info, iw, font::width), contentX() + 186, contentY() + 3,
+                linked.isEmpty() ? Theme.TEXT_FAINT : Theme.TEXT_DIM, false);
+        }
         int total = profiles.size() * ROW_H + 4;
         bar.update(x + lw - 5, top + 2, h - 4, total, h);
         int rw = lw - (total > h ? 10 : 4);
