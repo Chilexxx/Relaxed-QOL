@@ -213,21 +213,14 @@ public final class Render2D {
             VanillaStyle.toggle(g, x, y, progress);
             return;
         }
-        // Clean Style: a dark box with a thin grey edge and a block inside - green on the right when on, red on
-        // the left when off (sliding across while it changes)
+        // Clean Style: a fully rounded pill - grey when off, green when on - with a smooth round white knob
+        // that slides across (no hard edges at this small size)
         if (CleanStyle.on()) {
             int w = 16;
             int h = 8;
-            // A dark rounded slot with a soft edge...
-            roundRect(g, x, y, w, h, 2, 0xE0141517);
-            roundOutline(g, x, y, w, h, 2, 0x47FFFFFF);
-            // ...and a rounded block that slides across: soft green on the right when on, soft red on the left when off,
-            // with a faint light line on its top edge so it reads as a raised piece rather than a flat sticker
-            int bw = 8;
-            int bx = x + 1 + Math.round(progress * (w - 2 - bw));
-            int color = Theme.mix(CleanStyle.SWITCH_OFF, CleanStyle.SWITCH_ON, progress);
-            roundRect(g, bx, y + 1, bw, h - 2, 2, color);
-            g.fill(bx + 1, y + 1, bx + bw - 1, y + 2, 0x40FFFFFF);
+            roundRect(g, x, y, w, h, 4, Theme.mix(0xFF3A3B40, CleanStyle.SWITCH_ON, progress));
+            float cx = x + 4f + progress * (w - 8);
+            smoothCircle(g, cx, y + 4f, 2.9f, Theme.mix(0xFFC9CBD0, 0xFFFFFFFF, progress), 1f);
             return;
         }
         int w = 16;

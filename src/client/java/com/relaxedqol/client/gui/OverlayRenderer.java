@@ -31,37 +31,43 @@ public final class OverlayRenderer {
         int vh = Math.round(g.guiHeight() / scale);
 
         Theme.refresh();
-        g.pose().pushMatrix();
-        g.pose().scale(scale, scale);
-        Radar radar = RelaxedQolClient.enabled(Radar.class);
-        if (radar != null) {
-            // Every card is drawn in its own look (HUD editor), or the theme's
-            HudStyle.begin(radar.cardStyle());
-            String prev = LoverFx.beginScope("Radar");
-            try {
-                radar.render(g, mc.font, vw, vh, partialTicks);
-            } finally {
-                LoverFx.endScope(prev);
-                HudStyle.end();
-            }
-        }
-        // Card modules (armor status, keystrokes...)
-        // While Tab is held only the armor card stays (the radar is drawn above; the scoreboard is vanilla's)
-        boolean tab = com.relaxedqol.client.util.TabHud.open();
-        for (com.relaxedqol.client.module.Module m : RelaxedQolClient.moduleManager.getEnabledModules()) {
-            if (tab && !(m instanceof com.relaxedqol.client.module.modules.render.ArmorStatus)) continue;
-            if (m instanceof HudCard card && card.showsCard()) {
-                HudStyle.begin(card.cardStyle());
-                String prev = LoverFx.beginScope(m.getName());
+        // The cards look the same with the menu open as in game (the open menu draws them inside its smooth font)
+        int smoothDepth = com.relaxedqol.client.util.SmoothFont.pause();
+        try {
+            g.pose().pushMatrix();
+            g.pose().scale(scale, scale);
+            Radar radar = RelaxedQolClient.enabled(Radar.class);
+            if (radar != null) {
+                // Every card is drawn in its own look (HUD editor), or the theme's
+                HudStyle.begin(radar.cardStyle());
+                String prev = LoverFx.beginScope("Radar");
                 try {
-                    card.render(g, mc.font, vw, vh);
+                    radar.render(g, mc.font, vw, vh, partialTicks);
                 } finally {
                     LoverFx.endScope(prev);
                     HudStyle.end();
                 }
             }
+            // Card modules (armor status, keystrokes...)
+            // While Tab is held only the armor card stays (the radar is drawn above; the scoreboard is vanilla's)
+            boolean tab = com.relaxedqol.client.util.TabHud.open();
+            for (com.relaxedqol.client.module.Module m : RelaxedQolClient.moduleManager.getEnabledModules()) {
+                if (tab && !(m instanceof com.relaxedqol.client.module.modules.render.ArmorStatus)) continue;
+                if (m instanceof HudCard card && card.showsCard()) {
+                    HudStyle.begin(card.cardStyle());
+                    String prev = LoverFx.beginScope(m.getName());
+                    try {
+                        card.render(g, mc.font, vw, vh);
+                    } finally {
+                        LoverFx.endScope(prev);
+                        HudStyle.end();
+                    }
+                }
+            }
+            g.pose().popMatrix();
+        } finally {
+            com.relaxedqol.client.util.SmoothFont.resume(smoothDepth);
         }
-        g.pose().popMatrix();
     }
 
     // ------------------------------------------------------------------ moving / resizing cards on any GUI

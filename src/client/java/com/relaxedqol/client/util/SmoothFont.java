@@ -180,6 +180,26 @@ public final class SmoothFont {
         if (--depth == 0) swapWidths(false);
     }
 
+    /**
+     * Steps out of the smooth font for a moment (returns how deep it was, for {@link #resume}): the HUD cards the
+     * open menu draws over itself (minimap, armor status...) look exactly like they do in game, not smooth only
+     * while the menu is open. Cards with their own smooth text (Notes) still call begin / end inside.
+     */
+    public static int pause() {
+        int was = depth;
+        if (was > 0) {
+            depth = 0;
+            swapWidths(false);
+        }
+        return was;
+    }
+
+    public static void resume(int was) {
+        if (was <= 0) return;
+        depth = was;
+        swapWidths(true);
+    }
+
     // ------------------------------------------------------------------ widths
 
     /** The game font's width provider (inside its string splitter) and our stand-in, found by type, not by name. */
