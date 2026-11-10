@@ -151,7 +151,7 @@ public class NotepadScreen extends WindowScreen {
         int top = contentY() + 20;
         int h = contentY() + contentH() - top;
         List<NotepadStore.Page> pages = NotepadStore.all();
-        Render2D.roundRect(g, x, top, LIST_W, h, 8, 0x1A000000);
+        Render2D.roundRect(g, x, top, LIST_W, h, 2, 0x1A000000);
         int total = pages.size() * ROW_H;
         bar.update(x + LIST_W - 5, top + 3, h - 6, total, h);
         int accent = Theme.accent();
@@ -162,8 +162,8 @@ public class NotepadScreen extends WindowScreen {
             if (cy + ROW_H >= top && cy <= top + h) {
                 boolean current = p == page;
                 boolean hover = mouseX >= x && mouseX < x + rw && mouseY >= cy && mouseY < cy + ROW_H && mouseY >= top && mouseY < top + h;
-                if (current) Render2D.roundRect(g, x + 3, cy + 2, rw - 6, ROW_H - 4, 6, Theme.withAlpha(accent, 0.30f));
-                else if (hover) Render2D.roundRect(g, x + 3, cy + 2, rw - 6, ROW_H - 4, 6, 0x1AFFFFFF);
+                if (current) Render2D.roundRect(g, x + 3, cy + 2, rw - 6, ROW_H - 4, 2, Theme.withAlpha(accent, 0.30f));
+                else if (hover) Render2D.roundRect(g, x + 3, cy + 2, rw - 6, ROW_H - 4, 2, 0x1AFFFFFF);
                 String title = p == page ? currentTitle : p.title();
                 g.text(font, Theme.ellipsize(title, rw - 16, font::width), x + 8, cy + 4, current ? 0xFFFFFFFF : 0xFFE5E5EA, false);
                 g.text(font, WHEN.format(Instant.ofEpochMilli(p.changed)), x + 8, cy + 14, 0xFF8E8E93, false);
@@ -184,14 +184,11 @@ public class NotepadScreen extends WindowScreen {
                     lines = 1;
                     for (int i = 0; i < text.length(); i++) if (text.charAt(i) == '\n') lines++;
                 }
-                stats = words + (words == 1 ? " word" : " words") + "  \u00b7  " + lines + (lines == 1 ? " line" : " lines")
-                    + "  \u00b7  " + text.length() + " / " + NotepadStore.MAX_CHARS;
+                // (the character count is drawn by the text box itself, on the right)
+                stats = words + (words == 1 ? " word" : " words") + "  \u00b7  " + lines + (lines == 1 ? " line" : " lines");
                 currentTitle = NotepadStore.titleOf(text);
             }
             g.text(font, stats, editor.getX(), editor.getY() + editor.getHeight() + 3, 0xFF8E8E93, false);
-            String saved = "Saved automatically";
-            int sx = editor.getX() + editor.getWidth() - font.width(saved);
-            if (sx > editor.getX() + font.width(stats) + 8) g.text(font, saved, sx, editor.getY() + editor.getHeight() + 3, 0xFF6E6E73, false);
         }
     }
 

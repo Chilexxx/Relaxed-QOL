@@ -118,6 +118,11 @@ public final class HudStyle {
     /** Same, with the body as solid as {@code alpha} (0..1). */
     public static void card(GuiGraphicsExtractor g, int x, int y, int w, int h, float alpha) {
         float a = bodyAlpha >= 0 ? bodyAlpha : alpha;
+        if (VanillaStyle.on()) {
+            // Like Minecraft's own HUD boxes (scoreboard, chat): a plain see-through black box, no edge
+            g.fill(x, y, x + w, y + h, Theme.withAlpha(0xFF000000, Math.min(0.55f, a * 0.6f)));
+            return;
+        }
         if (shadow && a > 0.05f) Render2D.shadow(g, x, y, w, h, RADIUS);
         Render2D.roundRect(g, x, y, w, h, RADIUS, Theme.withAlpha(bodyColor, a));
         if ((EDGE >>> 24) != 0) Render2D.roundOutline(g, x, y, w, h, RADIUS, EDGE);

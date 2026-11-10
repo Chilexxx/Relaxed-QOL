@@ -39,6 +39,8 @@ public final class LoverFx {
 
     /** Whether LoverFella Mode itself is on (whatever part of the client is being drawn). */
     public static boolean modeOn() {
+        // Vanilla Style: everything in Minecraft's own look, no LoverCraft colours
+        if (VanillaStyle.on()) return false;
         LoverFellaMode m = module();
         return m != null && m.isEnabled() && !com.relaxedqol.client.util.Privacy.hides(m);
     }
@@ -81,7 +83,7 @@ public final class LoverFx {
 
     /** Title screen / server list / Esc menu decorations (and only while the client's menu look is used there). */
     private static boolean minecraftMenusOn(LoverFellaMode m) {
-        return m != null && m.isEnabled() && m.minecraftMenus()
+        return !VanillaStyle.on() && m != null && m.isEnabled() && m.minecraftMenus()
             && com.relaxedqol.client.module.modules.client.ClickGUI.customButtons();
     }
 

@@ -157,6 +157,11 @@ public abstract class WindowScreen extends Screen {
             String label = p.label().get();
             String shown = label.length() > 2 ? Theme.ellipsize(label, p.w() - 8, font::width) : label;
             boolean pressed = p == pressedPill && System.currentTimeMillis() - pressedAt < 140;
+            if (VanillaStyle.on()) {
+                // Minecraft's own button, yellow text while it is "on"
+                VanillaStyle.button(g, font, shown, p.x(), p.y(), p.w(), p.h(), hover, active, true);
+                continue;
+            }
             if (!LoverFx.on()) {
                 // Clean look (LoverFella Mode keeps its own capsule buttons): a calm button with a hairline edge; "on" =
                 // a soft accent fill, accent edge and light accent text. one control radius, the neutral text
@@ -405,6 +410,8 @@ public abstract class WindowScreen extends Screen {
     /** The game's black boxes with a grey border become rounded fields with the text inside, like a Mac app. */
     private void appleFields() {
         fields.clear();
+        // Vanilla Style: text boxes keep Minecraft's own look
+        if (VanillaStyle.on()) return;
         for (var child : children()) {
             if (!(child instanceof net.minecraft.client.gui.components.EditBox box) || box.getHeight() < 12) continue;
             int x = box.getX();
@@ -550,7 +557,10 @@ public abstract class WindowScreen extends Screen {
             Render2D.shadow(g, wx, wy, ww, wh, 10);
         }
         boolean lover = LoverFx.on();
-        if (lover) {
+        boolean vanilla = VanillaStyle.on();
+        if (vanilla) {
+            VanillaStyle.window(g, wx, wy, ww, wh, TITLE_H);
+        } else if (lover) {
             int body = bodyColor();
             Render2D.roundRect(g, wx, wy, ww, wh, 10, body);
             // A whisper of light at the top, like frosted glass
@@ -573,11 +583,15 @@ public abstract class WindowScreen extends Screen {
         int cxb = wx + ww - cs - 6;
         int cyb = wy + (TITLE_H - cs) / 2;
         boolean overClose = mouseX >= cxb - 2 && mouseX < cxb + cs + 2 && mouseY >= cyb - 2 && mouseY < cyb + cs + 2;
-        if (overClose) Render2D.roundRect(g, cxb, cyb, cs, cs, Theme.R_CONTROL, Theme.withAlpha(Theme.DANGER, 0.9f));
-        Render2D.icon(g, "close", cxb + 3, cyb + 3, 6, overClose ? 0xFFFFFFFF : Theme.TEXT_DIM);
+        if (vanilla) {
+            VanillaStyle.button(g, font, "x", cxb, cyb, cs, cs, overClose, false, true);
+        } else {
+            if (overClose) Render2D.roundRect(g, cxb, cyb, cs, cs, Theme.R_CONTROL, Theme.withAlpha(Theme.DANGER, 0.9f));
+            Render2D.icon(g, "close", cxb + 3, cyb + 3, 6, overClose ? 0xFFFFFFFF : Theme.TEXT_DIM);
+        }
         Component bold = getTitle().copy().withStyle(net.minecraft.ChatFormatting.BOLD);
         String extra = titleInfo();
-        int titleW = font.width(bold);
+        int titleW = vanilla ? font.width(getTitle()) : font.width(bold);
         int textY = wy + (TITLE_H - 8) / 2;
         int infoW = 0;
         String shown = null;
@@ -588,7 +602,12 @@ public abstract class WindowScreen extends Screen {
             if (shown.isEmpty()) shown = null;
         }
         int titleX;
-        if (lover) {
+        if (vanilla) {
+            // Centred, like the titles of Minecraft's screens
+            titleX = Math.max(wx + 8, wx + (ww - titleW) / 2);
+            if (infoW > 0) titleX = Math.min(titleX, wx + ww - 26 - infoW - 8 - titleW);
+            titleX = Math.max(titleX, wx + 8);
+        } else if (lover) {
             // Centred like a Mac window; slides left when the info on the right needs the room
             titleX = wx + (ww - titleW) / 2;
             if (infoW > 0) titleX = Math.min(titleX, wx + ww - 26 - infoW - 8 - titleW);
@@ -597,10 +616,13 @@ public abstract class WindowScreen extends Screen {
             // The title on the left, like a tool window (no chevron in front - it looked clickable but did nothing)
             titleX = wx + 10;
         }
-        g.text(font, bold, titleX, textY, Theme.TEXT, false);
+        if (vanilla) g.text(font, getTitle(), titleX, textY, VanillaStyle.TEXT, true);
+        else g.text(font, bold, titleX, textY, Theme.TEXT, false);
         if (shown != null) {
             int px = wx + ww - 24 - infoW;
-            if (lover) {
+            if (vanilla) {
+                // plain grey text, no badge
+            } else if (lover) {
                 Render2D.roundRect(g, px, wy + (TITLE_H - 12) / 2, infoW, 12, 6, 0x14FFFFFF);
             } else {
                 Render2D.roundRect(g, px, wy + (TITLE_H - 12) / 2, infoW, 12, Theme.R_CONTROL, Theme.PILL);
@@ -638,6 +660,7 @@ public abstract class WindowScreen extends Screen {
     /** The window's body colour (subclasses use it to round off the corners of pictures drawn inside). */
     protected int bodyColor() {
         float alpha = windowAlpha();
+        if (VanillaStyle.on()) return VanillaStyle.PANEL;
         return LoverFx.on() ? Theme.withAlpha(0xFF141A2E, Math.max(0.86f, alpha)) : Theme.withAlpha(Theme.WINDOW_BODY, Theme.windowAlpha());
     }
 

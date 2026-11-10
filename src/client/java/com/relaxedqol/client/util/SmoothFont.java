@@ -131,7 +131,14 @@ public final class SmoothFont {
     }
 
     private static boolean enabled() {
-        return com.relaxedqol.client.module.modules.client.ClickGUI.smoothFont();
+        // Vanilla Style always uses Minecraft's pixel font
+        return com.relaxedqol.client.module.modules.client.ClickGUI.smoothFont()
+            && !com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle();
+    }
+
+    /** Whether the client's own UI (a window, the menu, a HUD card) is being drawn right now. */
+    public static boolean inClientUi() {
+        return depth > 0;
     }
 
     private static boolean lookUp() {

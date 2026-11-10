@@ -62,6 +62,15 @@ public class ClickGUI extends Module {
     private final Setting<Boolean> customButtons = addSetting(new Setting<>("Custom Menu Buttons", true),
         "The client's rounded dark buttons and text fields in all Minecraft menus (settings, server list, joining a"
             + " server...). Off = Minecraft's normal buttons and menus again");
+    /**
+     * Every client screen, window, button, slider and card drawn like Minecraft's own menus: square dark panels,
+     * the game's button / slider / text box textures, the pixel font with shadows. Overrides the theme, the custom
+     * menu buttons and LoverFella Mode's colours while it is on.
+     */
+    private final Setting<Boolean> vanillaStyle = addSetting(new Setting<>("Vanilla Style", false),
+        "Makes every client menu, window, button and card look like normal Minecraft: square dark panels, Minecraft's"
+            + " own buttons, sliders and text boxes, and the pixel font. Overrides the theme, Custom Menu Buttons and"
+            + " LoverFella Mode's colours while on");
     /** The Screenshots module became this switch. */
     private final Setting<Boolean> screenshotTools = addSetting(new Setting<>("Screenshot Tools", true),
         "After F2: the screenshot is copied to your clipboard and one chat line shows Copy / Open / Folder / Delete"
@@ -157,10 +166,16 @@ public class ClickGUI extends Module {
         return g == null || g.smoothFont.getValue();
     }
 
-    /** Safe at any time, also while sprites are drawn very early (on until the settings exist). */
+    /** Safe at any time, also while sprites are drawn very early (on until the settings exist). Off in Vanilla Style. */
     public static boolean customButtons() {
         ClickGUI g = self;
-        return g == null || g.customButtons.getValue();
+        return g == null || (g.customButtons.getValue() && !g.vanillaStyle.getValue());
+    }
+
+    /** Settings > Vanilla Style: the whole client drawn like Minecraft's own menus. Safe at any time (off until loaded). */
+    public static boolean vanillaStyle() {
+        ClickGUI g = self;
+        return g != null && g.vanillaStyle.getValue();
     }
 
     /** Safe at any time (on until the settings exist). */
