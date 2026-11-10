@@ -206,31 +206,20 @@ public class ClickGuiScreen extends Screen {
     }
 
     /**
-     * The client menu to open: Minecraft-style ({@link VanillaMenuScreen}) while Settings > Vanilla Style is on,
-     * otherwise this one. Every place that opens the menu goes through here.
+     * The client menu to open (Vanilla Style only changes how it looks). Every place that opens the menu goes
+     * through here.
      */
     public static Screen create(Screen parent) {
-        if (com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle()) return new VanillaMenuScreen(parent);
         return new ClickGuiScreen(parent);
     }
 
-    /** Vanilla Style was switched: the open menu is swapped for the other kind right away. */
+    /** Vanilla Style was switched: the open menu just redraws in the new look (nothing to swap). */
     public static void styleChanged() {
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.execute(() -> {
-            if (mc.gui.screen() instanceof ClickGuiScreen open
-                && com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle()) {
-                mc.gui.setScreen(new VanillaMenuScreen(open.parent));
-            }
-        });
+        Theme.refresh();
     }
 
     /** Opens the menu with the Settings panel shown and expanded. */
     public static Screen settingsScreen(Screen parent) {
-        if (com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle()) {
-            java.util.List<Module> list = RelaxedQolClient.moduleManager.getModulesByCategory(ModuleCategory.CLIENT);
-            return new VanillaMenuScreen(parent, null, list.isEmpty() ? null : list.get(0));
-        }
         openSettings();
         return new ClickGuiScreen(parent);
     }
@@ -861,7 +850,8 @@ public class ClickGuiScreen extends Screen {
             g.disableScissor();
         }
         g.disableScissor();
-        Render2D.roundOutline(g, panel.x, panel.y, panel.w, totalH, RADIUS, Theme.BORDER);
+        if (VanillaStyle.on()) VanillaStyle.bevel(g, panel.x, panel.y, panel.w, totalH);
+        else Render2D.roundOutline(g, panel.x, panel.y, panel.w, totalH, RADIUS, Theme.BORDER);
         // Resize grip in the bottom-right corner
         int gx = panel.x + panel.w - 5;
         int gy = panel.bodyY + panel.bodyH - 5;
@@ -983,9 +973,11 @@ public class ClickGuiScreen extends Screen {
         String bind = module == binding ? "\u2026" : (bound ? KeyUtil.name(module.getKey()) : "Bind");
         if (bound || module == binding || hover) {
             int capFill = module == binding ? Theme.withAlpha(accent, 0.35f) : overBind ? 0x24FFFFFF : Theme.PILL;
-            Render2D.roundRect(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL, capFill);
-            Render2D.roundOutline(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL,
-                module == binding ? Theme.withAlpha(accent, 0.8f) : overBind ? 0x40FFFFFF : Theme.HAIRLINE);
+            if (!vanillaBox(g, p[0], y + 2, p[1], h - 4, module == binding || overBind)) {
+                Render2D.roundRect(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL, capFill);
+                Render2D.roundOutline(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL,
+                    module == binding ? Theme.withAlpha(accent, 0.8f) : overBind ? 0x40FFFFFF : Theme.HAIRLINE);
+            }
             int capText = module == binding || overBind ? Theme.TEXT : bound ? Theme.TEXT_SECONDARY : Theme.TEXT_FAINT;
             CrispText.centered(g, font, bind, p[0] + p[1] / 2, y + 4, capText);
         }
@@ -1009,6 +1001,13 @@ public class ClickGuiScreen extends Screen {
      * One setting row. the name is shortened so it never runs into the value on the right (long names in a
      * narrow panel used to overlap their value), and colour settings are a swatch that opens the colour picker.
      */
+    /** Vanilla Style: a small value box drawn as a Minecraft button. False = not in Vanilla Style (draw the normal box). */
+    private static boolean vanillaBox(GuiGraphicsExtractor g, int x, int y, int w, int h, boolean hot) {
+        if (!VanillaStyle.on()) return false;
+        VanillaStyle.buttonBg(g, x, y, w, h, hot);
+        return true;
+    }
+
     private void drawSetting(GuiGraphicsExtractor g, Row row, boolean hover, int accent, int mx) {
         Setting<?> setting = row.setting();
         int x = row.x();
@@ -1023,8 +1022,10 @@ public class ClickGuiScreen extends Screen {
 
         if (setting.isAction()) {
             // An action is a real button: quiet until the mouse is on it
-            Render2D.roundRect(g, x + 10, y + 2, w - 18, row.h() - 4, Theme.R_CONTROL, Theme.mix(Theme.TRACK, Theme.withAlpha(accent, 0.55f), hov));
-            Render2D.roundOutline(g, x + 10, y + 2, w - 18, row.h() - 4, Theme.R_CONTROL, Theme.mix(Theme.HAIRLINE, Theme.withAlpha(accent, 0.8f), hov));
+            if (!vanillaBox(g, x + 10, y + 2, w - 18, row.h() - 4, hover)) {
+                Render2D.roundRect(g, x + 10, y + 2, w - 18, row.h() - 4, Theme.R_CONTROL, Theme.mix(Theme.TRACK, Theme.withAlpha(accent, 0.55f), hov));
+                Render2D.roundOutline(g, x + 10, y + 2, w - 18, row.h() - 4, Theme.R_CONTROL, Theme.mix(Theme.HAIRLINE, Theme.withAlpha(accent, 0.8f), hov));
+            }
             CrispText.centered(g, font, fitText(setting.getName(), w - 26), x + 10 + (w - 18) / 2, y + 5, Theme.TEXT);
             return;
         }
@@ -1040,7 +1041,8 @@ public class ClickGuiScreen extends Screen {
             value = fitText(value, room / 2);
             int pw = CrispText.width(font, value) + 10;
             valueW = pw + 4;
-            Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, waiting ? accent : hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
+            if (!vanillaBox(g, right - pw, y + 1, pw, 11, waiting || hover))
+                Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, waiting ? accent : hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
             CrispText.text(g, font, value, right - pw + 5, y + 3, Theme.TEXT);
         } else if (setting.isBoolean()) {
             valueW = 22;
@@ -1078,7 +1080,8 @@ public class ClickGuiScreen extends Screen {
             valueW = vw0 + 22;
             // A little drop-down button - click it and every option is listed
             int pw = vw0 + 17;
-            Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, setting == modeMenu || hover ? Theme.withAlpha(accent, 0.30f) : Theme.TRACK);
+            if (!vanillaBox(g, right - pw, y + 1, pw, 11, setting == modeMenu || hover))
+                Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, setting == modeMenu || hover ? Theme.withAlpha(accent, 0.30f) : Theme.TRACK);
             CrispText.text(g, font, value, right - pw + 4, y + 3, Theme.TEXT);
             CrispText.text(g, font, "\u25BE", right - 10, y + 3, hover ? Theme.TEXT : Theme.TEXT_FAINT);
         } else if (setting.isList()) {
@@ -1086,7 +1089,8 @@ public class ClickGuiScreen extends Screen {
             String value = count == 0 ? "Edit" : count + " \u00B7 Edit";
             int pw = CrispText.width(font, value) + 8;
             valueW = pw + 4;
-            Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
+            if (!vanillaBox(g, right - pw, y + 1, pw, 11, hover))
+                Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
             CrispText.text(g, font, value, right - pw + 4, y + 3, Theme.TEXT);
         } else if (setting.isText() && setting.usesPrompt()) {
             // A button showing the value; clicking it opens the text window
@@ -1094,7 +1098,8 @@ public class ClickGuiScreen extends Screen {
             String shown = fitText(value, Math.max(24, room * 55 / 100 - 18));
             int pw = CrispText.width(font, shown) + 18;
             valueW = pw + 4;
-            Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
+            if (!vanillaBox(g, right - pw, y + 1, pw, 11, hover))
+                Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
             CrispText.text(g, font, shown, right - pw + 4, y + 3, setting.display().isEmpty() ? Theme.TEXT_DIM : Theme.TEXT);
             CrispText.text(g, font, "\u270E", x + w - 15, y + 3, hover ? Theme.TEXT : Theme.TEXT_FAINT);
         } else if (setting.isText()) {
@@ -1137,8 +1142,10 @@ public class ClickGuiScreen extends Screen {
         String value = waiting ? "Press a key\u2026" : bound ? KeyUtil.name(module.getKey()) : "None";
         int pw = CrispText.width(font, value) + 10;
         int px = x + w - 8 - pw;
-        Render2D.roundRect(g, px, y + 1, pw, 11, Theme.R_CONTROL, waiting ? Theme.withAlpha(accent, 0.35f) : hover ? 0x24FFFFFF : Theme.PILL);
-        Render2D.roundOutline(g, px, y + 1, pw, 11, Theme.R_CONTROL, waiting ? Theme.withAlpha(accent, 0.8f) : Theme.HAIRLINE);
+        if (!vanillaBox(g, px, y + 1, pw, 11, waiting || hover)) {
+            Render2D.roundRect(g, px, y + 1, pw, 11, Theme.R_CONTROL, waiting ? Theme.withAlpha(accent, 0.35f) : hover ? 0x24FFFFFF : Theme.PILL);
+            Render2D.roundOutline(g, px, y + 1, pw, 11, Theme.R_CONTROL, waiting ? Theme.withAlpha(accent, 0.8f) : Theme.HAIRLINE);
+        }
         CrispText.text(g, font, value, px + 5, y + 3, waiting || bound ? Theme.TEXT : Theme.TEXT_FAINT);
     }
 
@@ -1159,9 +1166,14 @@ public class ClickGuiScreen extends Screen {
         int x = (vw - w) / 2;
         int y = 9;
         int accent = Theme.accent();
-        Render2D.shadow(g, x, y, w, h, 9);
-        Render2D.roundRect(g, x, y, w, h, 9, Theme.header());
-        Render2D.roundOutline(g, x, y, w, h, 9, search.isEmpty() ? Theme.BORDER : Theme.withAlpha(accent, 0.9f));
+        boolean vanilla = VanillaStyle.on();
+        if (vanilla) {
+            VanillaStyle.field(g, x, y, w, h, !search.isEmpty());
+        } else {
+            Render2D.shadow(g, x, y, w, h, 9);
+            Render2D.roundRect(g, x, y, w, h, 9, Theme.header());
+            Render2D.roundOutline(g, x, y, w, h, 9, search.isEmpty() ? Theme.BORDER : Theme.withAlpha(accent, 0.9f));
+        }
         Render2D.icon(g, "search", x + 8, y + 4, 10, search.isEmpty() ? Theme.TEXT_FAINT : Theme.TEXT_DIM);
         // Blinking text cursor: the box is always ready to type in
         boolean blink = (System.currentTimeMillis() / 530) % 2 == 0;
@@ -1182,9 +1194,14 @@ public class ClickGuiScreen extends Screen {
         // panel layout: the Settings panel is shown) - it used to stay lit after leaving them, which looked like
         // you were still in the settings
         boolean inSettings = settingsShownNow();
-        Render2D.shadow(g, gx, y, GEAR, h, 9);
-        Render2D.roundRect(g, gx, y, GEAR, h, 9, inSettings ? Theme.withAlpha(accent, 0.55f) : Theme.header());
-        Render2D.roundOutline(g, gx, y, GEAR, h, 9, inSettings ? accent : Theme.BORDER);
+        boolean overGear = lastMx >= gx && lastMx < gx + GEAR && lastMy >= y && lastMy < y + h;
+        if (vanilla) {
+            VanillaStyle.buttonBg(g, gx, y, GEAR, h, inSettings || overGear);
+        } else {
+            Render2D.shadow(g, gx, y, GEAR, h, 9);
+            Render2D.roundRect(g, gx, y, GEAR, h, 9, inSettings ? Theme.withAlpha(accent, 0.55f) : Theme.header());
+            Render2D.roundOutline(g, gx, y, GEAR, h, 9, inSettings ? accent : Theme.BORDER);
+        }
         // Gear icon, centred in the round button
         int iconSize = 12;
         Render2D.icon(g, "gear", gx + (GEAR - iconSize) / 2, y + (h - iconSize) / 2, iconSize, inSettings ? Theme.TEXT : Theme.TEXT_DIM);
@@ -1194,9 +1211,13 @@ public class ClickGuiScreen extends Screen {
         int hx = gx + GEAR + HUD_BTN_GAP;
         int bw = hudBtnW();
         boolean overHud = lastMx >= hx && lastMx < hx + bw && lastMy >= y && lastMy < y + h;
-        Render2D.shadow(g, hx, y, bw, h, 9);
-        Render2D.roundRect(g, hx, y, bw, h, 9, overHud ? Theme.withAlpha(accent, 0.40f) : Theme.header());
-        Render2D.roundOutline(g, hx, y, bw, h, 9, overHud ? accent : Theme.BORDER);
+        if (vanilla) {
+            VanillaStyle.buttonBg(g, hx, y, bw, h, overHud);
+        } else {
+            Render2D.shadow(g, hx, y, bw, h, 9);
+            Render2D.roundRect(g, hx, y, bw, h, 9, overHud ? Theme.withAlpha(accent, 0.40f) : Theme.header());
+            Render2D.roundOutline(g, hx, y, bw, h, 9, overHud ? accent : Theme.BORDER);
+        }
         int tw = CrispText.width(font, "Edit HUD");
         int cx = hx + (bw - (9 + 5 + tw)) / 2;
         Render2D.icon(g, "pin", cx, y + (h - 9) / 2, 9, overHud ? Theme.TEXT : accent);
@@ -1505,7 +1526,8 @@ public class ClickGuiScreen extends Screen {
             if (content == 0 && !bindRow) CrispText.text(g, font, "No settings", sx + 6, setTop + 4, Theme.TEXT_FAINT);
             appScrollBar(g, sx + sw - 3, setTop, setH, appSetContentH, appSetScroll, accent);
         }
-        Render2D.roundOutline(g, x, y, w, h, RADIUS, Theme.BORDER);
+        if (VanillaStyle.on()) VanillaStyle.bevel(g, x, y, w, h);
+        else Render2D.roundOutline(g, x, y, w, h, RADIUS, Theme.BORDER);
         setHover(hoverModule, hoverSetting);
     }
 
@@ -1554,8 +1576,10 @@ public class ClickGuiScreen extends Screen {
         if (cap != null) {
             // The bound key as a small key cap after the name
             int cx = rx + 8 + CrispText.width(font, shown) + 5;
-            Render2D.roundRect(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, Theme.PILL);
-            Render2D.roundOutline(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, Theme.HAIRLINE);
+            if (!vanillaBox(g, cx, y + 3, capW, rh - 4, false)) {
+                Render2D.roundRect(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, Theme.PILL);
+                Render2D.roundOutline(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, Theme.HAIRLINE);
+            }
             CrispText.text(g, font, cap, cx + 4, y + 5, Theme.TEXT_FAINT);
         }
         if (module.isSettingsOnly()) return;

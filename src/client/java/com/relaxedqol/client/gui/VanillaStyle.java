@@ -45,6 +45,20 @@ public final class VanillaStyle {
         g.centeredText(font, label, x + w / 2, y + (h - 8) / 2 + (h % 2 == 0 ? 0 : 1), color);
     }
 
+    /** Only the button texture (for small value boxes that draw their own text). */
+    public static void buttonBg(GuiGraphicsExtractor g, int x, int y, int w, int h, boolean hover) {
+        if (w <= 0 || h <= 0) return;
+        g.blitSprite(RenderPipelines.GUI_TEXTURED, hover ? BUTTON_HOVER : BUTTON, x, y, w, h, 0xFFFFFFFF);
+    }
+
+    private static final Identifier FIELD = Identifier.fromNamespaceAndPath("minecraft", "widget/text_field");
+    private static final Identifier FIELD_FOCUS = Identifier.fromNamespaceAndPath("minecraft", "widget/text_field_highlighted");
+
+    /** Minecraft's text box frame (black inside, grey edge; white edge when focused). */
+    public static void field(GuiGraphicsExtractor g, int x, int y, int w, int h, boolean focused) {
+        g.blitSprite(RenderPipelines.GUI_TEXTURED, focused ? FIELD_FOCUS : FIELD, x, y, w, h, 0xFFFFFFFF);
+    }
+
     /**
      * A window / panel: a dark see-through body, a darker title strip and the classic bevel (black outside, a
      * lighter grey line inside), square corners.

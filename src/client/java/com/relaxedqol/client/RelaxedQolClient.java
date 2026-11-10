@@ -254,8 +254,7 @@ public class RelaxedQolClient implements ClientModInitializer {
             if (isLoadingScreen(screen) || client.level == null) return;
             // Esc: the pause menu (and the Options screens you reach from it) never get the Quick Panel
             if (isPauseOrOptions(screen)) return;
-            if (client.player == null || screen instanceof ClickGuiScreen || screen instanceof com.relaxedqol.client.gui.VanillaMenuScreen
-                || screen instanceof com.relaxedqol.client.gui.HudEditorScreen
+            if (client.player == null || screen instanceof ClickGuiScreen || screen instanceof com.relaxedqol.client.gui.HudEditorScreen
                 || screen instanceof com.relaxedqol.client.gui.WindowScreen) return;
             // Never put the Quick Panel over the chat box - it is in the way while typing
             if (screen instanceof net.minecraft.client.gui.screens.ChatScreen) return;

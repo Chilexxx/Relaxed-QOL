@@ -129,11 +129,11 @@ public final class SkinFaces {
         if (name == null || name.isEmpty()) return id != null && defaultFace(g, id, x, y, size, color);
         if (id != null) IDS.putIfAbsent(name.toLowerCase(Locale.ROOT), id);
         Minecraft mc = Minecraft.getInstance();
-        // 1) In the tab list: their skin is already loaded
+        // 1) In the tab list: their skin is already loaded (looked up in the once-a-second name table - walking
+        //    the whole tab list for every face, every frame, cost a lot of FPS on full servers)
         if (mc.getConnection() != null) {
-            for (PlayerInfo info : mc.getConnection().getOnlinePlayers()) {
-                if (name.equalsIgnoreCase(info.getProfile().name()) && Heads.draw(g, info.getProfile().id(), x, y, size, color)) return true;
-            }
+            java.util.UUID tab = Names.tabId(name, null);
+            if (tab != null && Heads.draw(g, tab, x, y, size, color)) return true;
         }
         String key = name.toLowerCase(Locale.ROOT);
         registerPending();
@@ -196,12 +196,13 @@ public final class SkinFaces {
         if (name == null || name.isEmpty()) return null;
         Minecraft mc = Minecraft.getInstance();
         if (mc.getConnection() != null) {
-            for (PlayerInfo info : mc.getConnection().getOnlinePlayers()) {
-                if (!name.equalsIgnoreCase(info.getProfile().name())) continue;
+            java.util.UUID tab = Names.tabId(name, null);
+            PlayerInfo info = tab == null ? null : mc.getConnection().getPlayerInfo(tab);
+            if (info != null) {
                 try {
                     return new Skin(info.getSkin().body().texturePath(), 64);
-                } catch (RuntimeException e) {
-                    break;
+                } catch (RuntimeException ignored) {
+                    // fall through to the downloaded skin
                 }
             }
         }

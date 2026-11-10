@@ -90,6 +90,10 @@ public class KeepServerPacks extends Module {
             if (n > 0) {
                 kept = true;
                 fromLover = true;
+                // Minecraft only applies server packs while it is connected to a server - on the title screen
+                // nothing would happen until you join (and then it reloads in game). So the pack manager is moved
+                // along from here until the packs are really active.
+                applyUntil = System.currentTimeMillis() + 90_000;
                 note("game start: " + n + " LoverCraft packs put back from the downloads folder");
                 int count = n;
                 com.relaxedqol.client.gui.Toasts.show("Keep Server Packs", "Loading " + count + (count == 1 ? " pack" : " packs")
@@ -97,6 +101,56 @@ public class KeepServerPacks extends Module {
             }
         } catch (Exception e) {
             note("game start: could not put the packs back (" + e.getClass().getSimpleName() + ")");
+        }
+    }
+
+    /** Until when the restored packs are pushed into use on the title screen (0 = not now). */
+    private static long applyUntil;
+    private static java.lang.reflect.Field managerField;
+    private static Method managerTick;
+
+    /**
+     * Keep After Restart: moves the game's server-pack manager along (its own tick) while the restored packs are
+     * not active yet, so they load during start-up instead of in game. Stops as soon as they are active, when you
+     * join a world, or after 90 seconds.
+     */
+    private static void applyRestored() {
+        if (applyUntil == 0) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (System.currentTimeMillis() > applyUntil || mc.level != null) {
+            if (!stillActive()) note("game start: packs were not active yet, they load when you join");
+            applyUntil = 0;
+            return;
+        }
+        if (stillActive()) {
+            applyUntil = 0;
+            note("game start: packs active");
+            com.relaxedqol.client.gui.Toasts.show("Keep Server Packs", "LoverCraft's packs are loaded - joining will be quick",
+                0xFF4ADE80, 3500);
+            return;
+        }
+        if (mc.gui.overlay() != null) return; // a reload is running: wait for it
+        try {
+            Object source = mc.getDownloadedPackSource();
+            if (managerField == null) {
+                for (java.lang.reflect.Field f : source.getClass().getDeclaredFields()) {
+                    if (f.getType().getName().equals("net.minecraft.client.resources.server.ServerPackManager")) {
+                        f.setAccessible(true);
+                        managerField = f;
+                        managerTick = f.getType().getDeclaredMethod("tick");
+                        managerTick.setAccessible(true);
+                        break;
+                    }
+                }
+            }
+            if (managerField == null) {
+                applyUntil = 0;
+                return;
+            }
+            managerTick.invoke(managerField.get(source));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            note("game start: could not load the packs early (" + e.getClass().getSimpleName() + ")");
+            applyUntil = 0;
         }
     }
 
@@ -122,7 +176,10 @@ public class KeepServerPacks extends Module {
         afterRestart = addSetting(new com.relaxedqol.client.setting.Setting<>("Keep After Restart", false),
             "Also after restarting Minecraft or your PC: LoverCraft's packs (the copies Minecraft keeps in its downloads"
                 + " folder) are put back while the game starts, so joining is quick. The game takes longer to start then");
-        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(c -> restoreOnStart());
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(c -> {
+            restoreOnStart();
+            applyRestored();
+        });
         addSetting(new com.relaxedqol.client.setting.ActionSetting("Forget Packs", KeepServerPacks::forget),
             "Removes the kept LoverCraft packs and forgets them - the next time you join, they are loaded fresh from the"
                 + " server (use it now and then, or when the server's packs look wrong)");

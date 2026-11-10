@@ -48,6 +48,11 @@ public class ClickGUI extends Module {
     private final Setting<Boolean> fpsBoost = addSetting(new Setting<>("FPS Boost", true),
         "More FPS without changing how the game looks: mobs, chests, signs, heads, item frames... that are completely"
             + " hidden behind solid walls are skipped instead of drawn (big boost at spawns and bases)");
+    /** FPS Boost also skips floating texts / named holograms that are completely hidden behind walls. */
+    private final Setting<Boolean> cullHolograms = addSetting(new Setting<>("Cull Holograms", true)
+        .showIf(() -> this.fpsBoost.getValue()),
+        "Big boost at spawns: floating texts, leaderboards and named holograms completely hidden behind solid walls are"
+            + " not drawn either (only Minecraft's faint see-through name text behind walls goes away)");
     /** For slower computers - the client does less work per frame. */
     private final Setting<Boolean> lowEnd = addSetting(new Setting<>("Low-End PC", false),
         "For slower computers: the HUD, cards and LocatorBar are worked out 30 times a second instead of 60, the minimap"
@@ -189,6 +194,11 @@ public class ClickGUI extends Module {
     public static boolean lowEnd() {
         ClickGUI g = self;
         return g != null && g.lowEnd.getValue();
+    }
+
+    public static boolean cullHolograms() {
+        ClickGUI g = self;
+        return g == null || (g.fpsBoost.getValue() && g.cullHolograms.getValue());
     }
 
     public static boolean fpsBoost() {

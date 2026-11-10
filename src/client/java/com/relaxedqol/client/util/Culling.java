@@ -107,14 +107,15 @@ public final class Culling {
     }
 
     private static boolean checkEntity(Minecraft mc, Entity e) {
-        if (e.getClass().getSimpleName().contains("TextDisplay")) return false;
+        boolean holograms = com.relaxedqol.client.module.modules.client.ClickGUI.cullHolograms();
+        if (!holograms && e.getClass().getSimpleName().contains("TextDisplay")) return false;
         AABB box = e.getBoundingBox();
         if (box.getXsize() > 3 || box.getYsize() > 4 || box.getZsize() > 3) return false;
         Vec3 eye = eye(mc);
         if (eye == null) return false;
         Vec3 c = box.getCenter();
         if (c.distanceToSqr(eye) < MIN_DIST * MIN_DIST) return false;
-        if (insideBlock(mc, eye) || special(e)) return false;
+        if (insideBlock(mc, eye) || special(e, holograms)) return false;
         double x0 = box.minX + 0.05, x1 = box.maxX - 0.05, y0 = box.minY + 0.05, y1 = box.maxY - 0.05, z0 = box.minZ + 0.05, z1 = box.maxZ - 0.05;
         return !visible(mc, eye, c.x, c.y, c.z) && !visible(mc, eye, c.x, y1, c.z) && cornersHidden(mc, eye, x0, y0, z0, x1, y1, z1);
     }
@@ -225,7 +226,7 @@ public final class Culling {
     }
 
     /** Glowing entities and ones whose name shows (both are drawn through walls by the game). */
-    private static boolean special(Entity e) {
+    private static boolean special(Entity e, boolean namedMayHide) {
         if (!looked) {
             looked = true;
             try {
@@ -242,7 +243,8 @@ public final class Culling {
         // Not sure (the game named these differently): better to draw it
         if (glowing == null || showsName == null) return true;
         try {
-            return Boolean.TRUE.equals(glowing.invoke(e)) || Boolean.TRUE.equals(showsName.invoke(e));
+            // Glowing is always drawn (seen through walls on purpose); a name only when holograms are not culled
+            return Boolean.TRUE.equals(glowing.invoke(e)) || (!namedMayHide && Boolean.TRUE.equals(showsName.invoke(e)));
         } catch (ReflectiveOperationException | RuntimeException ex) {
             return true;
         }
