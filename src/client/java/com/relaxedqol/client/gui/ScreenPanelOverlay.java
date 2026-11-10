@@ -581,7 +581,7 @@ public final class ScreenPanelOverlay {
             int[] gr = gear(x, y, w);
             if (event.button() == 0 && mx >= gr[0] - 2 && mx < gr[0] + gr[2] + 2) {
                 // The client menu (remembers this screen, so closing the menu comes back here)
-                if (!(mc.gui.screen() instanceof ClickGuiScreen)) mc.gui.setScreen(new ClickGuiScreen(mc.gui.screen()));
+                if (!(mc.gui.screen() instanceof ClickGuiScreen) && !(mc.gui.screen() instanceof VanillaMenuScreen)) mc.gui.setScreen(ClickGuiScreen.create(mc.gui.screen()));
             } else if (mx < x + 15) {
                 collapsed = !collapsed;
             } else if (event.button() == 0) {

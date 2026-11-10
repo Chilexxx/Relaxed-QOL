@@ -52,9 +52,9 @@ public class ClickGUI extends Module {
     private final Setting<Boolean> lowEnd = addSetting(new Setting<>("Low-End PC", false),
         "For slower computers: the HUD, cards and LocatorBar are worked out 30 times a second instead of 60, the minimap"
             + " builds terrain in smaller slices, and soft glows are left out. Looks the same, costs less FPS");
-    /** Apple-style smooth text (Inter) in the client's windows and cards. */
+    /** Smooth text (Inter) in the client's windows and cards. */
     private final Setting<Boolean> smoothFont = addSetting(new Setting<>("Smooth Font", false),
-        "Smooth, Apple-style text (no pixel font) in the client's windows and the Notes card");
+        "Smooth, anti-aliased text (no pixel font) in the client's windows and the Notes card");
     /**
      * The client's own look on Minecraft's menus (rounded dark buttons and text fields in the title screen, options,
      * server list, join screens...). Off = Minecraft's normal buttons everywhere.
@@ -67,7 +67,8 @@ public class ClickGUI extends Module {
      * the game's button / slider / text box textures, the pixel font with shadows. Overrides the theme, the custom
      * menu buttons and LoverFella Mode's colours while it is on.
      */
-    private final Setting<Boolean> vanillaStyle = addSetting(new Setting<>("Vanilla Style", false),
+    private final Setting<Boolean> vanillaStyle = addSetting(new Setting<>("Vanilla Style", false)
+        .onChange(com.relaxedqol.client.gui.ClickGuiScreen::styleChanged),
         "Makes every client menu, window, button and card look like normal Minecraft: square dark panels, Minecraft's"
             + " own buttons, sliders and text boxes, and the pixel font. Overrides the theme, Custom Menu Buttons and"
             + " LoverFella Mode's colours while on");

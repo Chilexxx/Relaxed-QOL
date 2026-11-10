@@ -38,7 +38,7 @@ public final class MenuStyle {
     /** The round gear button (top-left) that opens the client menu. */
     public static Button gearButton(Screen screen) {
         Minecraft mc = Minecraft.getInstance();
-        menuButton = Button.builder(Component.literal("  Relaxed QOL"), b -> mc.gui.setScreen(new ClickGuiScreen(screen)))
+        menuButton = Button.builder(Component.literal("  Relaxed QOL"), b -> mc.gui.setScreen(ClickGuiScreen.create(screen)))
             .bounds(6, 6, 108, 20).build();
         return menuButton;
     }

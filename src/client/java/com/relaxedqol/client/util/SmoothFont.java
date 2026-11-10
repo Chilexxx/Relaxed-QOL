@@ -11,7 +11,7 @@ import java.lang.reflect.Method;
 import java.util.Objects;
 
 /**
- * "Smooth Font": Apple-style, anti-aliased text (Inter, shipped with the client) instead of Minecraft's pixel
+ * "Smooth Font": smooth, anti-aliased text (Inter, shipped with the client) instead of Minecraft's pixel
  * font - in every client window (Notes, PlayerAlert, Accounts...), the Notes card and the other
  * places that ask for it. How it works:
  * - the client's font files (assets/relaxed-qol/font) make the game build Inter at 1x..8x detail;

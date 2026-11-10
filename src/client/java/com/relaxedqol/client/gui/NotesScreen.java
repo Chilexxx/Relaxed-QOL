@@ -46,7 +46,7 @@ public class NotesScreen extends WindowScreen {
     private static final int YELLOW = 0xFFFFD60A;
 
     /**
-     * Like Apple Notes - a calm list, each note's first line as its title, a grey preview and the date
+     * A calm list, each note's first line as its title, a grey preview and the date
      * under it, a yellow pin on pinned ones; pin / delete appear on the row under the mouse.
      */
     @Override

@@ -16,7 +16,7 @@ public class MenuCommand extends Command {
         // Once the chat box has closed
         Later.run(() -> {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) mc.gui.setScreen(new ClickGuiScreen());
+            if (mc.player != null) mc.gui.setScreen(ClickGuiScreen.create(null));
         });
     }
 

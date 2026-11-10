@@ -176,7 +176,7 @@ public abstract class WindowScreen extends Screen {
                 g.centeredText(font, shown, p.x() + p.w() / 2, p.y() + (p.h() - 8) / 2 + (pressed ? 1 : 0), text);
                 continue;
             }
-            // Apple-style buttons: a soft filled capsule, the accent only when it is "on"
+            // Soft buttons: a soft filled capsule, the accent only when it is "on"
             int r = Math.min(p.h() / 2, 7);
             int bg = active ? Theme.withAlpha(color, 0.85f + 0.1f * glow) : Theme.mix(0x1CFFFFFF, 0x30FFFFFF, glow);
             Render2D.roundRect(g, p.x(), p.y(), p.w(), p.h(), r, bg);
@@ -550,7 +550,7 @@ public abstract class WindowScreen extends Screen {
             g.pose().pushMatrix();
             g.pose().translate(0f, Math.round((1f - pop) * 4f));
         }
-        // Apple-style frame: a deep soft shadow, one calm translucent body, a hairline edge, the three
+        // Window frame: a deep soft shadow, one calm translucent body, a hairline edge, the three
         // window lights on the left and the title centred in a smooth font
         if (alpha >= 0.6f) {
             Render2D.shadow(g, wx - 3, wy + 2, ww + 6, wh + 4, 14);

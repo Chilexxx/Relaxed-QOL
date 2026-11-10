@@ -205,8 +205,32 @@ public class ClickGuiScreen extends Screen {
         this.parent = parent;
     }
 
+    /**
+     * The client menu to open: Minecraft-style ({@link VanillaMenuScreen}) while Settings > Vanilla Style is on,
+     * otherwise this one. Every place that opens the menu goes through here.
+     */
+    public static Screen create(Screen parent) {
+        if (com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle()) return new VanillaMenuScreen(parent);
+        return new ClickGuiScreen(parent);
+    }
+
+    /** Vanilla Style was switched: the open menu is swapped for the other kind right away. */
+    public static void styleChanged() {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        mc.execute(() -> {
+            if (mc.gui.screen() instanceof ClickGuiScreen open
+                && com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle()) {
+                mc.gui.setScreen(new VanillaMenuScreen(open.parent));
+            }
+        });
+    }
+
     /** Opens the menu with the Settings panel shown and expanded. */
-    public static ClickGuiScreen settingsScreen(Screen parent) {
+    public static Screen settingsScreen(Screen parent) {
+        if (com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle()) {
+            java.util.List<Module> list = RelaxedQolClient.moduleManager.getModulesByCategory(ModuleCategory.CLIENT);
+            return new VanillaMenuScreen(parent, null, list.isEmpty() ? null : list.get(0));
+        }
         openSettings();
         return new ClickGuiScreen(parent);
     }

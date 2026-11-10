@@ -78,7 +78,7 @@ public class RelaxedQolClient implements ClientModInitializer {
             if (look != null) {
                 boolean menuDown = InputConstants.isKeyDown(client.getWindow(), look.menuKey());
                 if (menuDown && !menuKeyWasDown && client.gui.screen() == null && client.player != null) {
-                    client.gui.setScreen(new ClickGuiScreen());
+                    client.gui.setScreen(ClickGuiScreen.create(null));
                 }
                 menuKeyWasDown = menuDown;
             }
@@ -234,7 +234,7 @@ public class RelaxedQolClient implements ClientModInitializer {
                 ScreenKeyboardEvents.afterKeyPress(screen).register((s, event) -> {
                     com.relaxedqol.client.module.modules.client.ClickGUI look =
                         moduleManager.getModule(com.relaxedqol.client.module.modules.client.ClickGUI.class);
-                    if (look != null && event.key() == look.menuKey()) client.gui.setScreen(new ClickGuiScreen(s));
+                    if (look != null && event.key() == look.menuKey()) client.gui.setScreen(ClickGuiScreen.create(s));
                 });
                 return;
             }
@@ -254,7 +254,8 @@ public class RelaxedQolClient implements ClientModInitializer {
             if (isLoadingScreen(screen) || client.level == null) return;
             // Esc: the pause menu (and the Options screens you reach from it) never get the Quick Panel
             if (isPauseOrOptions(screen)) return;
-            if (client.player == null || screen instanceof ClickGuiScreen || screen instanceof com.relaxedqol.client.gui.HudEditorScreen
+            if (client.player == null || screen instanceof ClickGuiScreen || screen instanceof com.relaxedqol.client.gui.VanillaMenuScreen
+                || screen instanceof com.relaxedqol.client.gui.HudEditorScreen
                 || screen instanceof com.relaxedqol.client.gui.WindowScreen) return;
             // Never put the Quick Panel over the chat box - it is in the way while typing
             if (screen instanceof net.minecraft.client.gui.screens.ChatScreen) return;

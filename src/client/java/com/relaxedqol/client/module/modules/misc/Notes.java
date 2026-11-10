@@ -96,7 +96,7 @@ public class Notes extends Module implements HudCard {
             if (com.relaxedqol.client.gui.ScreenPanelOverlay.coversGui(window.getX() * hs, window.getY() * hs,
                 window.getW() * hs, window.getH() * hs)) return;
         }
-        // Drawn like an Apple Notes widget, in the smooth font
+        // Drawn as a clean notes card, in the smooth font
         com.relaxedqol.client.util.SmoothFont.begin();
         try {
             drawCard(g, font, vw, vh, pinned);
