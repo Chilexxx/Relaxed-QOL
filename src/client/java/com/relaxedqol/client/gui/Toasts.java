@@ -81,15 +81,26 @@ public final class Toasts {
             // Clean Style: see-through glass in the theme's colours, a thin light edge, white text; the pop-up's
             // colour only as a small dot and the time line
             if (CleanStyle.on()) {
-                int r = Theme.R_SURFACE;
+                // Frosted glass: a see-through panel lightly tinted with the accent, a soft light sheen on the top
+                // half, a thin bright edge, smooth text; the pop-up's colour is only a small soft dot
+                int r = Math.min(h / 2, 10);
+                int glass = Theme.mix(Theme.PANEL, Theme.accent(), 0.08f + com.relaxedqol.client.module.modules.client.ClickGUI.glassTint() * 0.4f);
                 Render2D.shadow(g, x, yy, w, h, r);
-                Render2D.roundRect(g, x, yy, w, h, r, Theme.fade(Theme.withAlpha(Theme.PANEL, 0.72f), alpha));
-                Render2D.roundOutline(g, x, yy, w, h, r, Theme.fade(Theme.BORDER, alpha));
-                Render2D.smoothCircle(g, x + 8f, yy + 10f, 2.5f, Theme.fade(t.color(), alpha), 1f);
-                int barW = Math.round((w - 20) * left);
-                if (barW > 0) Render2D.roundRect(g, x + 10, yy + h - 2, barW, 1, 0, Theme.fade(Theme.withAlpha(t.color(), 0.6f), alpha));
-                g.text(font, title, x + 15, yy + 6, (Theme.TEXT & 0xFFFFFF) | textAlpha, false);
-                if (!t.message().isEmpty()) g.text(font, t.message(), x + 15, yy + 17, (Theme.TEXT_DIM & 0xFFFFFF) | textAlpha, false);
+                Render2D.roundRect(g, x, yy, w, h, r, Theme.fade(Theme.withAlpha(glass, 0.55f), alpha));
+                Render2D.roundRect(g, x + 1, yy + 1, w - 2, h / 2, r - 1, Theme.fade(0x12FFFFFF, alpha));
+                Render2D.roundOutline(g, x, yy, w, h, r, Theme.fade(0x38FFFFFF, alpha));
+                Render2D.smoothCircle(g, x + 10f, yy + h / 2f, 2.2f, Theme.fade(Theme.withAlpha(t.color(), 0.9f), alpha), 1f);
+                // Time left: a faint white hairline inside the bottom edge
+                int barW = Math.round((w - 2 * r) * left);
+                if (barW > 0) g.fill(x + r, yy + h - 2, x + r + barW, yy + h - 1, Theme.fade(0x40FFFFFF, alpha));
+                com.relaxedqol.client.util.SmoothFont.begin();
+                try {
+                    int ty = t.message().isEmpty() ? yy + (h - 8) / 2 : yy + 6;
+                    g.text(font, t.title(), x + 17, ty, (Theme.TEXT & 0xFFFFFF) | textAlpha, false);
+                    if (!t.message().isEmpty()) g.text(font, t.message(), x + 17, yy + 17, (Theme.TEXT_DIM & 0xFFFFFF) | textAlpha, false);
+                } finally {
+                    com.relaxedqol.client.util.SmoothFont.end();
+                }
                 y += h + 5;
                 continue;
             }
