@@ -90,8 +90,8 @@ public class ClickGUI extends Module {
             com.relaxedqol.client.gui.ClickGuiScreen.styleChanged();
         }),
         "A clean, modern PvP-client look for every client menu, window and HUD card (the layout stays the same):"
-            + " near-black see-through panels, thin borders, small rounded corners, smooth text, green switches and"
-            + " plain see-through HUD boxes. Overrides the theme and LoverFella Mode's colours while on");
+            + " near-black see-through panels, thin borders, small rounded corners, smooth text, no colours (only white"
+            + " and greys) and plain see-through HUD boxes. Overrides the theme and LoverFella Mode's colours while on");
     /** The Screenshots module became this switch. */
     private final Setting<Boolean> screenshotTools = addSetting(new Setting<>("Screenshot Tools", true),
         "After F2: the screenshot is copied to your clipboard and one chat line shows Copy / Open / Folder / Delete"

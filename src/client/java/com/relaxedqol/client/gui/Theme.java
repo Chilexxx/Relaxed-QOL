@@ -221,6 +221,8 @@ public final class Theme {
         refresh();
         // Vanilla Style: no colour accent - white, like Minecraft's selected / focused outlines
         if (VanillaStyle.on()) return 0xFFFFFFFF;
+        // Clean Style: no colours anywhere - a soft white instead of an accent
+        if (CleanStyle.on()) return CleanStyle.ACCENT;
         // LoverFella Mode - heart red and mustache cyan
         if (LoverFx.on()) return LoverFx.accent(offset);
         String mode = "Violet";

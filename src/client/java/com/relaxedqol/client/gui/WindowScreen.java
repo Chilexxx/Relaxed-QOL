@@ -586,7 +586,8 @@ public abstract class WindowScreen extends Screen {
         if (vanilla) {
             VanillaStyle.button(g, font, "x", cxb, cyb, cs, cs, overClose, false, true);
         } else {
-            if (overClose) Render2D.roundRect(g, cxb, cyb, cs, cs, Theme.R_CONTROL, Theme.withAlpha(Theme.DANGER, 0.9f));
+            if (overClose) Render2D.roundRect(g, cxb, cyb, cs, cs, Theme.R_CONTROL,
+                CleanStyle.on() ? 0x33FFFFFF : Theme.withAlpha(Theme.DANGER, 0.9f));
             Render2D.icon(g, "close", cxb + 3, cyb + 3, 6, overClose ? 0xFFFFFFFF : Theme.TEXT_DIM);
         }
         Component bold = getTitle().copy().withStyle(net.minecraft.ChatFormatting.BOLD);
