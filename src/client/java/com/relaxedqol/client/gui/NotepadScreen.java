@@ -151,7 +151,9 @@ public class NotepadScreen extends WindowScreen {
         int top = contentY() + 20;
         int h = contentY() + contentH() - top;
         List<NotepadStore.Page> pages = NotepadStore.all();
-        Render2D.roundRect(g, x, top, LIST_W, h, 2, 0x1A000000);
+        boolean vanilla = VanillaStyle.on();
+        if (vanilla) g.fill(x, top, x + LIST_W, top + h, 0x60000000);
+        else Render2D.roundRect(g, x, top, LIST_W, h, 2, 0x1A000000);
         int total = pages.size() * ROW_H;
         bar.update(x + LIST_W - 5, top + 3, h - 6, total, h);
         int accent = Theme.accent();
@@ -162,11 +164,15 @@ public class NotepadScreen extends WindowScreen {
             if (cy + ROW_H >= top && cy <= top + h) {
                 boolean current = p == page;
                 boolean hover = mouseX >= x && mouseX < x + rw && mouseY >= cy && mouseY < cy + ROW_H && mouseY >= top && mouseY < top + h;
-                if (current) Render2D.roundRect(g, x + 3, cy + 2, rw - 6, ROW_H - 4, 2, Theme.withAlpha(accent, 0.30f));
+                if (vanilla) {
+                    // Like Minecraft's server list: the selected one framed in white, a grey frame under the mouse
+                    if (current) VanillaStyle.selected(g, x + 2, cy + 1, rw - 4, ROW_H - 2);
+                    else if (hover) VanillaStyle.box(g, x + 2, cy + 1, rw - 4, ROW_H - 2, false);
+                } else if (current) Render2D.roundRect(g, x + 3, cy + 2, rw - 6, ROW_H - 4, 2, Theme.withAlpha(accent, 0.30f));
                 else if (hover) Render2D.roundRect(g, x + 3, cy + 2, rw - 6, ROW_H - 4, 2, 0x1AFFFFFF);
                 String title = p == page ? currentTitle : p.title();
-                g.text(font, Theme.ellipsize(title, rw - 16, font::width), x + 8, cy + 4, current ? 0xFFFFFFFF : 0xFFE5E5EA, false);
-                g.text(font, WHEN.format(Instant.ofEpochMilli(p.changed)), x + 8, cy + 14, 0xFF8E8E93, false);
+                g.text(font, Theme.ellipsize(title, rw - 16, font::width), x + 6, cy + 4, current ? 0xFFFFFFFF : 0xFFE5E5EA, false);
+                g.text(font, WHEN.format(Instant.ofEpochMilli(p.changed)), x + 6, cy + 13, vanilla ? 0xFF808080 : 0xFF8E8E93, false);
                 rowRects.add(new int[]{x, Math.max(cy, top), rw, Math.min(cy + ROW_H, top + h) - Math.max(cy, top)});
                 rowPages.add(p);
             }

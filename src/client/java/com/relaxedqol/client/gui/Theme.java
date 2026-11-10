@@ -97,6 +97,30 @@ public final class Theme {
             ANIM = gui.themeAnim().getValue() / 100f;
             return;
         }
+        if (CleanStyle.on()) {
+            // Clean Style: near-black see-through panels, thin faint lines, small corners, soft shadows
+            SURFACE = CleanStyle.SURFACE;
+            WINDOW_BODY = CleanStyle.SURFACE;
+            BACKGROUND = CleanStyle.BACKGROUND;
+            PANEL = CleanStyle.PANEL;
+            PANEL_HEADER = CleanStyle.HEADER;
+            SETTINGS_BG = CleanStyle.SETTINGS;
+            TRACK = 0xFF2A2C31;
+            BORDER = 0x1FFFFFFF;
+            HAIRLINE = 0x14FFFFFF;
+            ROW_HOVER = 0x0FFFFFFF;
+            PILL = 0x12FFFFFF;
+            TEXT = 0xFFF5F5F7;
+            TEXT_SECONDARY = 0xFFC8CAD0;
+            TEXT_DIM = 0xFF9A9DA5;
+            TEXT_FAINT = 0xFF62656D;
+            R_CONTROL = 3;
+            R_ROW = 4;
+            R_SURFACE = 5;
+            SHADOW = 0.35f;
+            ANIM = gui.themeAnim().getValue() / 100f;
+            return;
+        }
         try {
             int surface = 0xFF000000 | com.relaxedqol.client.util.Colors.of(gui.themeSurface().getValue());
             int text = 0xFF000000 | com.relaxedqol.client.util.Colors.of(gui.themeText().getValue());
@@ -171,6 +195,7 @@ public final class Theme {
     /** See-through panel background. */
     public static int panel() {
         if (VanillaStyle.on()) return VanillaStyle.PANEL;
+        if (CleanStyle.on()) return CleanStyle.PANEL;
         if (LoverFx.on()) return withAlpha(0xFF0D1A3A, Math.max(0.55f, opacity()));
         return withAlpha(shade(SURFACE, -0.04f), opacity());
     }
@@ -178,6 +203,7 @@ public final class Theme {
     /** Panel title bar, a little more solid than the body. */
     public static int header() {
         if (VanillaStyle.on()) return VanillaStyle.HEADER;
+        if (CleanStyle.on()) return CleanStyle.HEADER;
         if (LoverFx.on()) return withAlpha(0xFF15295C, Math.min(1f, Math.max(0.55f, opacity()) + 0.2f));
         return withAlpha(shade(SURFACE, 0.02f), Math.min(1f, opacity() + 0.18f));
     }
@@ -185,6 +211,7 @@ public final class Theme {
     /** Background behind expanded settings. */
     public static int settingsBg() {
         if (VanillaStyle.on()) return 0xC0000000;
+        if (CleanStyle.on()) return CleanStyle.SETTINGS;
         if (LoverFx.on()) return withAlpha(0xFF071230, Math.min(1f, Math.max(0.55f, opacity()) * 0.85f));
         return withAlpha(shade(SURFACE, -0.30f), Math.min(1f, opacity() * 0.8f));
     }

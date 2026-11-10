@@ -123,6 +123,11 @@ public final class HudStyle {
             g.fill(x, y, x + w, y + h, Theme.withAlpha(0xFF000000, Math.min(0.55f, a * 0.6f)));
             return;
         }
+        if (CleanStyle.on()) {
+            // A plain see-through box with small corners - no edge, no shadow
+            Render2D.roundRect(g, x, y, w, h, 3, Theme.withAlpha(CleanStyle.HUD_BOX, Math.min(0.5f, a * 0.6f)));
+            return;
+        }
         if (shadow && a > 0.05f) Render2D.shadow(g, x, y, w, h, RADIUS);
         Render2D.roundRect(g, x, y, w, h, RADIUS, Theme.withAlpha(bodyColor, a));
         if ((EDGE >>> 24) != 0) Render2D.roundOutline(g, x, y, w, h, RADIUS, EDGE);

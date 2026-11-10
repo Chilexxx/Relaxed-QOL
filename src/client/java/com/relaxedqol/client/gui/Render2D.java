@@ -213,6 +213,8 @@ public final class Render2D {
             VanillaStyle.toggle(g, x, y, progress);
             return;
         }
+        // Clean Style: green when on, whatever the accent
+        if (CleanStyle.on()) accent = CleanStyle.ON;
         int w = 16;
         int h = 8;
         roundRect(g, x, y, w, h, 4, Theme.mix(Theme.TRACK, accent, progress));

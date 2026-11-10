@@ -73,10 +73,25 @@ public class ClickGUI extends Module {
      * menu buttons and LoverFella Mode's colours while it is on.
      */
     private final Setting<Boolean> vanillaStyle = addSetting(new Setting<>("Vanilla Style", false)
-        .onChange(com.relaxedqol.client.gui.ClickGuiScreen::styleChanged),
+        .onChange(() -> {
+            if (this.vanillaStyle.getValue() && this.cleanStyle != null) this.cleanStyle.setValue(false);
+            com.relaxedqol.client.gui.ClickGuiScreen.styleChanged();
+        }),
         "Makes every client menu, window, button and card look like normal Minecraft: square dark panels, Minecraft's"
             + " own buttons, sliders and text boxes, and the pixel font. Overrides the theme, Custom Menu Buttons and"
             + " LoverFella Mode's colours while on");
+    /**
+     * A calm, modern PvP-client look for every client menu, window and card (same layout): near-black see-through
+     * panels, thin borders, small rounded corners, the smooth font, green switches, plain HUD boxes.
+     */
+    private final Setting<Boolean> cleanStyle = addSetting(new Setting<>("Clean Style", false)
+        .onChange(() -> {
+            if (this.cleanStyle.getValue()) this.vanillaStyle.setValue(false);
+            com.relaxedqol.client.gui.ClickGuiScreen.styleChanged();
+        }),
+        "A clean, modern PvP-client look for every client menu, window and HUD card (the layout stays the same):"
+            + " near-black see-through panels, thin borders, small rounded corners, smooth text, green switches and"
+            + " plain see-through HUD boxes. Overrides the theme and LoverFella Mode's colours while on");
     /** The Screenshots module became this switch. */
     private final Setting<Boolean> screenshotTools = addSetting(new Setting<>("Screenshot Tools", true),
         "After F2: the screenshot is copied to your clipboard and one chat line shows Copy / Open / Folder / Delete"
@@ -176,6 +191,12 @@ public class ClickGUI extends Module {
     public static boolean customButtons() {
         ClickGUI g = self;
         return g == null || (g.customButtons.getValue() && !g.vanillaStyle.getValue());
+    }
+
+    /** Settings > Clean Style. Safe at any time (off until loaded). */
+    public static boolean cleanStyle() {
+        ClickGUI g = self;
+        return g != null && g.cleanStyle.getValue();
     }
 
     /** Settings > Vanilla Style: the whole client drawn like Minecraft's own menus. Safe at any time (off until loaded). */

@@ -132,8 +132,10 @@ public final class SmoothFont {
 
     private static boolean enabled() {
         // Vanilla Style always uses Minecraft's pixel font
+        // Clean Style always uses the smooth font, Vanilla Style always the pixel font
+        if (com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle()) return false;
         return com.relaxedqol.client.module.modules.client.ClickGUI.smoothFont()
-            && !com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle();
+            || com.relaxedqol.client.module.modules.client.ClickGUI.cleanStyle();
     }
 
     /** Whether the client's own UI (a window, the menu, a HUD card) is being drawn right now. */

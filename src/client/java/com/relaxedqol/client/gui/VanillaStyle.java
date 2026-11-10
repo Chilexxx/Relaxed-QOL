@@ -48,7 +48,26 @@ public final class VanillaStyle {
     /** Only the button texture (for small value boxes that draw their own text). */
     public static void buttonBg(GuiGraphicsExtractor g, int x, int y, int w, int h, boolean hover) {
         if (w <= 0 || h <= 0) return;
+        if (h < 16) {
+            // Too small for the button texture (it squashes badly): Minecraft's text box look instead -
+            // black inside, a grey edge, white under the mouse
+            box(g, x, y, w, h, hover);
+            return;
+        }
         g.blitSprite(RenderPipelines.GUI_TEXTURED, hover ? BUTTON_HOVER : BUTTON, x, y, w, h, 0xFFFFFFFF);
+    }
+
+    /** A small black box with a 1 px grey edge (white when hot), like Minecraft's text boxes. */
+    public static void box(GuiGraphicsExtractor g, int x, int y, int w, int h, boolean hot) {
+        int edge = hot ? 0xFFFFFFFF : 0xFFA0A0A0;
+        g.fill(x, y, x + w, y + h, edge);
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, 0xFF000000);
+    }
+
+    /** A selected row in a list, like Minecraft's server / world lists: a white edge around black. */
+    public static void selected(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+        g.fill(x, y, x + w, y + h, 0xFFFFFFFF);
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, 0xFF000000);
     }
 
     private static final Identifier FIELD = Identifier.fromNamespaceAndPath("minecraft", "widget/text_field");
