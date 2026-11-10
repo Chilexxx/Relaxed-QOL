@@ -215,6 +215,10 @@ public class Chat extends Module {
         return t;
     }
 
+    /** When the last new chat line came in, and how close lines must be to count as one message. */
+    private long lastLineAt;
+    private static final long BURST_MS = 250;
+
     /** Called for every incoming chat line (before it is added). count = how many times it came (1 = new). */
     public Component decorate(Component message, int count) {
         if (com.relaxedqol.client.util.Privacy.hidden()) return message;
@@ -230,6 +234,16 @@ public class Chat extends Module {
                 default -> DateTimeFormatter.ofPattern("HH:mm");
             });
             String shown = brackets.getValue() ? "[" + t + "] " : t + "  ";
+            // One message = one time: lines that arrive together (a server sends e.g. a whole CoreProtect page as
+            // separate lines at once) only show the time on the first one; the rest are indented to line up
+            long now = System.currentTimeMillis();
+            boolean sameBurst = !isRepeat && now - lastLineAt < BURST_MS;
+            if (!isRepeat) lastLineAt = now;
+            if (sameBurst) {
+                net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+                int spaces = Math.max(1, Math.round(font.width(shown) / (float) Math.max(1, font.width(" "))));
+                return Component.empty().append(Component.literal(" ".repeat(spaces))).append(out);
+            }
             int c = timeColor.getValue().equals("Black") ? 0xFF6E6E7A : Colors.of(timeColor.getValue());
             // The time and the message side by side - the message used to be a child of the grey time text, so
             // everything without its own colour (player heads!) was drawn tinted grey and looked dim

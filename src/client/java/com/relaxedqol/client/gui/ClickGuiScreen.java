@@ -376,6 +376,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     private static int heightOf(Setting<?> setting) {
+        if (setting instanceof com.relaxedqol.client.setting.PreviewSetting preview) return preview.height();
         if (setting.isNumber()) return NUMBER_H;
         if (setting.isAction()) return ACTION_H;
         return ROW_H;
@@ -1018,6 +1019,11 @@ public class ClickGuiScreen extends Screen {
         int y = row.y();
         int w = row.w();
         int labelX = x + 10;
+        // A live preview (e.g. the crosshair) paints itself in its row
+        if (setting instanceof com.relaxedqol.client.setting.PreviewSetting preview) {
+            preview.paint(g, x + 10, y + 2, w - 18, row.h() - 4);
+            return;
+        }
         Keys keys = keys(setting);
         float hov = ANIM.smooth(keys.hov, hover ? 1 : 0, 28);
         if (hov > 0.004f && !setting.isAction()) Render2D.roundRect(g, x + 6, y, w - 8, row.h(), Theme.R_CONTROL, Theme.withAlpha(0xFFFFFFFF, 0.05f * hov));
@@ -1914,6 +1920,7 @@ public class ClickGuiScreen extends Screen {
 
     private void clickSetting(Row row, double mx, double my, int button) {
         Setting<?> setting = row.setting();
+        if (setting instanceof com.relaxedqol.client.setting.PreviewSetting) return; // just a picture
         // Clicked number / mode settings take the mouse wheel (see scrollFocus)
         scrollFocus = setting.isNumber() || setting.isMode() ? setting : null;
         if (setting.isKey()) {

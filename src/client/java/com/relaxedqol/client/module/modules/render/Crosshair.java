@@ -12,6 +12,9 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
  * element) only while it is on; first person only, like the real one.
  */
 public class Crosshair extends Module {
+    /** A live preview at the top of the settings: the crosshair at its real size on sky, grass, stone and a player. */
+    private final com.relaxedqol.client.setting.PreviewSetting preview = addSetting(new com.relaxedqol.client.setting.PreviewSetting("Preview", 40,
+        this::paintPreview), "Your crosshair at its real size on sky, grass, stone and (last) aiming at a player");
     private final Setting<String> shape = addSetting(Setting.mode("Shape", "Cross", "Cross", "Cross + Dot", "Dot", "Circle", "Circle + Dot", "T"),
         "Click to pick the crosshair's shape");
     private final Setting<Integer> size = addSetting(new Setting<>("Size", 4, 1, 10, 1),
@@ -52,11 +55,44 @@ public class Crosshair extends Module {
      */
     private void render(GuiGraphicsExtractor g) {
         int gs = Math.max(1, mc.getWindow().getGuiScale());
-        int col = Colors.of(colour.getValue());
-        if (playerColour.getValue() && mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit
-            && hit.getEntity() instanceof net.minecraft.world.entity.player.Player) {
-            col = 0xFFFF4D4D;
+        boolean onPlayer = playerColour.getValue() && mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit
+            && hit.getEntity() instanceof net.minecraft.world.entity.player.Player;
+        g.pose().pushMatrix();
+        g.pose().scale(1f / gs, 1f / gs);
+        shape(g, g.guiWidth() * gs / 2, g.guiHeight() * gs / 2, gs, onPlayer);
+        g.pose().popMatrix();
+    }
+
+    /**
+     * The settings preview: four tiles (sky, grass, stone, and a dark one where it shows as when aiming at a
+     * player), each with the crosshair in the middle at exactly the size it has in game.
+     */
+    private void paintPreview(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+        int[] tiles = {0xFF86B7EE, 0xFF5E9E3A, 0xFF7A7A7A, 0xFF2A2B30};
+        int tw = w / tiles.length;
+        for (int i = 0; i < tiles.length; i++) {
+            int x0 = x + i * tw;
+            g.fill(x0, y, i == tiles.length - 1 ? x + w : x0 + tw - 1, y + h, tiles[i]);
         }
+        int gs = Math.max(1, mc.getWindow().getGuiScale());
+        // Screen pixels per menu unit here, so the preview is the real in-game size whatever the menu's scale
+        float f = com.relaxedqol.client.util.SmoothFont.pixelsPer(g.pose());
+        g.enableScissor(x, y, x + w, y + h);
+        g.pose().pushMatrix();
+        g.pose().scale(1f / f, 1f / f);
+        for (int i = 0; i < tiles.length; i++) {
+            int cx = Math.round((x + i * tw + tw / 2f) * f);
+            int cy = Math.round((y + h / 2f) * f);
+            shape(g, cx, cy, gs, i == tiles.length - 1 && playerColour.getValue());
+        }
+        g.pose().popMatrix();
+        g.disableScissor();
+    }
+
+    /** The crosshair around the screen-pixel point (cxs, cys); the pose must already be in screen pixels. */
+    private void shape(GuiGraphicsExtractor g, int cxs, int cys, int gs, boolean onPlayer) {
+        int col = Colors.of(colour.getValue());
+        if (onPlayer) col = 0xFFFF4D4D;
         int a = Math.round(opacity.getValue() * 2.55f);
         col = (a << 24) | (col & 0xFFFFFF);
         int edge = (Math.round(a * 0.7f) << 24);
@@ -65,16 +101,12 @@ public class Crosshair extends Module {
         int gp = gap.getValue() * gs;
         int t = thickness.getValue() * gs;
         int o = outline.getValue() ? Math.max(1, gs / 2) : 0;
-        int cxs = g.guiWidth() * gs / 2;
-        int cys = g.guiHeight() * gs / 2;
         // The centre square every arm lines up with: [c0, c0 + t) on both axes
         int x0 = cxs - t / 2;
         int y0 = cys - t / 2;
         String sh = shape.getValue();
         boolean dot = sh.contains("Dot");
 
-        g.pose().pushMatrix();
-        g.pose().scale(1f / gs, 1f / gs);
         if (sh.startsWith("Cross") || sh.equals("T")) {
             int[][] arms = {
                 {x0 - gp - s, y0, x0 - gp, y0 + t},             // left
@@ -104,7 +136,6 @@ public class Crosshair extends Module {
             if (o > 0) g.fill(x0 - o, y0 - o, x0 + t + o, y0 + t + o, edge);
             g.fill(x0, y0, x0 + t, y0 + t, col);
         }
-        g.pose().popMatrix();
     }
 
     private static void ring(GuiGraphicsExtractor g, float cx, float cy, int r, int points, int t, int color) {
