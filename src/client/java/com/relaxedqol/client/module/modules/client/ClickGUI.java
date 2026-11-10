@@ -193,6 +193,12 @@ public class ClickGUI extends Module {
         return g == null || (g.customButtons.getValue() && !g.vanillaStyle.getValue());
     }
 
+    /** The Custom Menu Buttons switch itself (on in every style, for LoverFella Mode's menu decorations). */
+    public static boolean customButtonsSwitch() {
+        ClickGUI g = self;
+        return g == null || g.customButtons.getValue();
+    }
+
     /** Settings > Clean Style. Safe at any time (off until loaded). */
     public static boolean cleanStyle() {
         ClickGUI g = self;

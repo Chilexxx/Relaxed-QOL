@@ -105,19 +105,19 @@ public final class Theme {
             PANEL = CleanStyle.PANEL;
             PANEL_HEADER = CleanStyle.HEADER;
             SETTINGS_BG = CleanStyle.SETTINGS;
-            TRACK = 0xFF2A2C31;
-            BORDER = 0x1FFFFFFF;
-            HAIRLINE = 0x14FFFFFF;
-            ROW_HOVER = 0x0FFFFFFF;
-            PILL = 0x12FFFFFF;
+            TRACK = 0xFF26272B;
+            BORDER = CleanStyle.BORDER;
+            HAIRLINE = 0x26FFFFFF;
+            ROW_HOVER = 0x14FFFFFF;
+            PILL = 0x1FFFFFFF;
             TEXT = 0xFFF5F5F7;
             TEXT_SECONDARY = 0xFFC8CAD0;
             TEXT_DIM = 0xFF9A9DA5;
             TEXT_FAINT = 0xFF62656D;
-            R_CONTROL = 3;
-            R_ROW = 4;
-            R_SURFACE = 5;
-            SHADOW = 0.35f;
+            R_CONTROL = 2;
+            R_ROW = 2;
+            R_SURFACE = 3;
+            SHADOW = 0f;
             ANIM = gui.themeAnim().getValue() / 100f;
             return;
         }
@@ -194,37 +194,37 @@ public final class Theme {
 
     /** See-through panel background. */
     public static int panel() {
+        if (LoverFx.on()) return withAlpha(0xFF0D1A3A, Math.max(0.55f, opacity()));
         if (VanillaStyle.on()) return VanillaStyle.PANEL;
         if (CleanStyle.on()) return CleanStyle.PANEL;
-        if (LoverFx.on()) return withAlpha(0xFF0D1A3A, Math.max(0.55f, opacity()));
         return withAlpha(shade(SURFACE, -0.04f), opacity());
     }
 
     /** Panel title bar, a little more solid than the body. */
     public static int header() {
+        if (LoverFx.on()) return withAlpha(0xFF15295C, Math.min(1f, Math.max(0.55f, opacity()) + 0.2f));
         if (VanillaStyle.on()) return VanillaStyle.HEADER;
         if (CleanStyle.on()) return CleanStyle.HEADER;
-        if (LoverFx.on()) return withAlpha(0xFF15295C, Math.min(1f, Math.max(0.55f, opacity()) + 0.2f));
         return withAlpha(shade(SURFACE, 0.02f), Math.min(1f, opacity() + 0.18f));
     }
 
     /** Background behind expanded settings. */
     public static int settingsBg() {
+        if (LoverFx.on()) return withAlpha(0xFF071230, Math.min(1f, Math.max(0.55f, opacity()) * 0.85f));
         if (VanillaStyle.on()) return 0xC0000000;
         if (CleanStyle.on()) return CleanStyle.SETTINGS;
-        if (LoverFx.on()) return withAlpha(0xFF071230, Math.min(1f, Math.max(0.55f, opacity()) * 0.85f));
         return withAlpha(shade(SURFACE, -0.30f), Math.min(1f, opacity() * 0.8f));
     }
 
     /** Accent colour; offset shifts the hue in Rainbow mode (used for gradients down lists). */
     public static int accent(int offset) {
         refresh();
+        // LoverFella Mode - heart red and mustache cyan (in every style)
+        if (LoverFx.on()) return LoverFx.accent(offset);
         // Vanilla Style: no colour accent - white, like Minecraft's selected / focused outlines
         if (VanillaStyle.on()) return 0xFFFFFFFF;
         // Clean Style: no colours anywhere - a soft white instead of an accent
         if (CleanStyle.on()) return CleanStyle.ACCENT;
-        // LoverFella Mode - heart red and mustache cyan
-        if (LoverFx.on()) return LoverFx.accent(offset);
         String mode = "Violet";
         if (RelaxedQolClient.moduleManager != null) {
             ClickGUI gui = RelaxedQolClient.moduleManager.getModule(ClickGUI.class);

@@ -213,11 +213,16 @@ public final class Render2D {
             VanillaStyle.toggle(g, x, y, progress);
             return;
         }
-        // Clean Style: grey-scale - a light grey track with a dark knob when on, dark grey with a grey knob when off
+        // Clean Style: a dark box with a thin grey edge and a block inside - green on the right when on, red on
+        // the left when off (sliding across while it changes)
         if (CleanStyle.on()) {
-            roundRect(g, x, y, 16, 8, 4, Theme.mix(0xFF2A2C31, CleanStyle.ON, progress));
-            int kx = x + 1 + Math.round(progress * 8);
-            roundRect(g, kx, y + 1, 6, 6, 3, Theme.mix(0xFF8A8D94, 0xFF1A1B1F, progress));
+            int w = 16;
+            int h = 8;
+            g.fill(x, y, x + w, y + h, 0xFF4A4B50);
+            g.fill(x + 1, y + 1, x + w - 1, y + h - 1, 0xFF1E1F22);
+            int bw = 9;
+            int bx = x + 1 + Math.round(progress * (w - 2 - bw));
+            g.fill(bx, y + 1, bx + bw, y + h - 1, Theme.mix(CleanStyle.SWITCH_OFF, CleanStyle.SWITCH_ON, progress));
             return;
         }
         int w = 16;
@@ -231,6 +236,14 @@ public final class Render2D {
     public static void slider(GuiGraphicsExtractor g, int x, int y, int w, float fraction, int accent, boolean active) {
         if (VanillaStyle.on()) {
             VanillaStyle.slider(g, x, y, w, fraction, active);
+            return;
+        }
+        if (CleanStyle.on()) {
+            // A thin dark line and a round blue knob, no coloured fill
+            g.fill(x, y + 1, x + w, y + 2, 0xFF0E0F11);
+            g.fill(x, y + 2, x + w, y + 3, 0x40FFFFFF);
+            float f = Math.max(0, Math.min(1, fraction));
+            smoothCircle(g, x + f * w, y + 1.5f, active ? 4f : 3.5f, CleanStyle.KNOB, 1f);
             return;
         }
         roundRect(g, x, y, w, 3, 1, Theme.TRACK);
