@@ -176,12 +176,14 @@ public abstract class WindowScreen extends Screen {
                 g.centeredText(font, shown, p.x() + p.w() / 2, p.y() + (p.h() - 8) / 2 + (pressed ? 1 : 0), text);
                 continue;
             }
-            // Soft buttons: a soft filled capsule, the accent only when it is "on"
+            // Soft buttons: a soft filled capsule; "on" = a calm tint with an edge in the accent (not a solid glowing bar)
             int r = Math.min(p.h() / 2, 7);
-            int bg = active ? Theme.withAlpha(color, 0.85f + 0.1f * glow) : Theme.mix(0x1CFFFFFF, 0x30FFFFFF, glow);
+            int bg = active ? Theme.withAlpha(color, 0.22f + 0.08f * glow) : Theme.mix(0x1CFFFFFF, 0x30FFFFFF, glow);
             Render2D.roundRect(g, p.x(), p.y(), p.w(), p.h(), r, bg);
-            if (p.w() > 2 * r + 2) g.fill(p.x() + r, p.y(), p.x() + p.w() - r, p.y() + 1, active ? 0x30FFFFFF : 0x12FFFFFF);
-            g.centeredText(font, shown, p.x() + p.w() / 2, p.y() + (p.h() - 8) / 2, active ? 0xFFFFFFFF : Theme.mix(0xFFC9C9D1, 0xFFFFFFFF, glow));
+            if (active) Render2D.roundOutline(g, p.x(), p.y(), p.w(), p.h(), r, Theme.withAlpha(color, 0.75f));
+            else if (p.w() > 2 * r + 2) g.fill(p.x() + r, p.y(), p.x() + p.w() - r, p.y() + 1, 0x12FFFFFF);
+            g.centeredText(font, shown, p.x() + p.w() / 2, p.y() + (p.h() - 8) / 2,
+                active ? Theme.mix(color, 0xFFFFFFFF, 0.55f) : Theme.mix(0xFFC9C9D1, 0xFFFFFFFF, glow));
         }
     }
 
@@ -661,6 +663,11 @@ public abstract class WindowScreen extends Screen {
     /** The window's body colour (subclasses use it to round off the corners of pictures drawn inside). */
     protected int bodyColor() {
         float alpha = windowAlpha();
+        // LoverFella Mode's navy, as see-through as the style's own windows
+        if (LoverFx.on() && (VanillaStyle.on() || CleanStyle.on())) {
+            int style = VanillaStyle.on() ? Theme.PANEL : CleanStyle.window();
+            return Theme.withAlpha(0xFF141A2E, ((style >>> 24) & 0xFF) / 255f);
+        }
         if (VanillaStyle.on()) return Theme.PANEL;
         if (CleanStyle.on()) return CleanStyle.window();
         return LoverFx.on() ? Theme.withAlpha(0xFF141A2E, Math.max(0.86f, alpha)) : Theme.withAlpha(Theme.WINDOW_BODY, Theme.windowAlpha());

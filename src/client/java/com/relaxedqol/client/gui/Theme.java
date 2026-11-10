@@ -197,23 +197,33 @@ public final class Theme {
         return Math.max(0.55f, Math.min(1f, 0.93f + (opacity() - 0.45f) * 0.7f));
     }
 
+    /** Vanilla or Clean Style is on: LoverFella Mode's colours then take the style's see-through-ness. */
+    private static boolean styled() {
+        return VanillaStyle.on() || CleanStyle.on();
+    }
+
+    /** The alpha of a colour, 0..1. */
+    private static float alphaOf(int color) {
+        return ((color >>> 24) & 0xFF) / 255f;
+    }
+
     /** See-through panel background. */
     public static int panel() {
-        if (LoverFx.on()) return withAlpha(0xFF0D1A3A, Math.max(0.55f, opacity()));
+        if (LoverFx.on()) return withAlpha(0xFF0D1A3A, styled() ? alphaOf(PANEL) : Math.max(0.55f, opacity()));
         if (VanillaStyle.on() || CleanStyle.on()) return PANEL;
         return withAlpha(shade(SURFACE, -0.04f), opacity());
     }
 
     /** Panel title bar, a little more solid than the body. */
     public static int header() {
-        if (LoverFx.on()) return withAlpha(0xFF15295C, Math.min(1f, Math.max(0.55f, opacity()) + 0.2f));
+        if (LoverFx.on()) return withAlpha(0xFF15295C, styled() ? alphaOf(PANEL_HEADER) : Math.min(1f, Math.max(0.55f, opacity()) + 0.2f));
         if (VanillaStyle.on() || CleanStyle.on()) return PANEL_HEADER;
         return withAlpha(shade(SURFACE, 0.02f), Math.min(1f, opacity() + 0.18f));
     }
 
     /** Background behind expanded settings. */
     public static int settingsBg() {
-        if (LoverFx.on()) return withAlpha(0xFF071230, Math.min(1f, Math.max(0.55f, opacity()) * 0.85f));
+        if (LoverFx.on()) return withAlpha(0xFF071230, styled() ? alphaOf(SETTINGS_BG) : Math.min(1f, Math.max(0.55f, opacity()) * 0.85f));
         if (VanillaStyle.on() || CleanStyle.on()) return SETTINGS_BG;
         return withAlpha(shade(SURFACE, -0.30f), Math.min(1f, opacity() * 0.8f));
     }

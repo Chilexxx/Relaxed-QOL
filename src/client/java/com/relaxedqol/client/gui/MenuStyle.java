@@ -32,8 +32,11 @@ public final class MenuStyle {
     public static net.minecraft.resources.Identifier buttonSprite(net.minecraft.resources.Identifier sprite) {
         if (sprite == null || !"minecraft".equals(sprite.getNamespace()) || !OWN_SPRITES.contains(sprite.getPath())) return sprite;
         if (!ClickGUI.customButtons()) return sprite;
-        // Clean Style: plain grey text boxes (the client's own ones carry the theme colour on their edge)
-        if (CleanStyle.on() && sprite.getPath().startsWith("widget/text_field")) return sprite;
+        // Clean Style: frosted-glass buttons and text boxes (widget/clean_button..., see-through with a light edge)
+        if (CleanStyle.on()) {
+            return net.minecraft.resources.Identifier.fromNamespaceAndPath("relaxed-qol",
+                "widget/clean_" + sprite.getPath().substring("widget/".length()));
+        }
         return net.minecraft.resources.Identifier.fromNamespaceAndPath("relaxed-qol", sprite.getPath());
     }
 
