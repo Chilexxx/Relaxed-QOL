@@ -69,6 +69,8 @@ public final class LoverFx {
         LoverFellaMode m = module();
         if (scope != null) return m.hudLit(scope);
         net.minecraft.client.gui.screens.Screen open = net.minecraft.client.Minecraft.getInstance().gui.screen();
+        // No screen open: only the HUD is being drawn (a part without its own switch)
+        if (open == null) return m.hudLit("Other");
         return open instanceof WindowScreen ? m.clientWindows() : m.clientMenu();
     }
 
