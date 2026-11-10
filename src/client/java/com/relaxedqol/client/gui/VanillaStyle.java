@@ -83,9 +83,9 @@ public final class VanillaStyle {
      * lighter grey line inside), square corners.
      */
     public static void window(GuiGraphicsExtractor g, int x, int y, int w, int h, int titleH) {
-        g.fill(x, y, x + w, y + h, PANEL);
+        g.fill(x, y, x + w, y + h, Theme.PANEL);
         if (titleH > 0) {
-            g.fill(x + 1, y + 1, x + w - 1, y + titleH, HEADER);
+            g.fill(x + 1, y + 1, x + w - 1, y + titleH, Theme.PANEL_HEADER);
             g.fill(x + 1, y + titleH, x + w - 1, y + titleH + 1, EDGE_LIGHT);
         }
         bevel(g, x, y, w, h);
@@ -111,7 +111,7 @@ public final class VanillaStyle {
         g.blitSprite(RenderPipelines.GUI_TEXTURED, SLIDER, x, ty, w, h, 0xFFFFFFFF);
         float f = Math.max(0, Math.min(1, fraction));
         int filled = Math.round((w - 2) * f);
-        if (filled > 0) g.fill(x + 1, ty + 1, x + 1 + filled, ty + h - 1, 0x8055AA55);
+        if (filled > 0) g.fill(x + 1, ty + 1, x + 1 + filled, ty + h - 1, Theme.withAlpha(Theme.accent(), 0.5f));
         int hx = x + Math.round((w - 4) * f);
         g.blitSprite(RenderPipelines.GUI_TEXTURED, active ? SLIDER_HANDLE_HOVER : SLIDER_HANDLE, hx, ty - 1, 4, h + 2, 0xFFFFFFFF);
     }
@@ -121,7 +121,7 @@ public final class VanillaStyle {
         int w = 16;
         int h = 8;
         g.blitSprite(RenderPipelines.GUI_TEXTURED, SLIDER, x, y, w, h, 0xFFFFFFFF);
-        if (progress > 0.01f) g.fill(x + 1, y + 1, x + w - 1, y + h - 1, Theme.withAlpha(0xFF55AA55, 0.75f * progress));
+        if (progress > 0.01f) g.fill(x + 1, y + 1, x + w - 1, y + h - 1, Theme.withAlpha(Theme.accent(), 0.75f * progress));
         int hx = x + Math.round(progress * (w - 5));
         g.blitSprite(RenderPipelines.GUI_TEXTURED, progress > 0.5f ? SLIDER_HANDLE_HOVER : SLIDER_HANDLE, hx, y, 5, h, 0xFFFFFFFF);
     }

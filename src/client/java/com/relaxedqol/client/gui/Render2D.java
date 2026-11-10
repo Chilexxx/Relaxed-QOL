@@ -213,12 +213,12 @@ public final class Render2D {
             VanillaStyle.toggle(g, x, y, progress);
             return;
         }
-        // Clean Style: a fully rounded pill - grey when off, green when on - with a smooth round white knob
+        // Clean Style: a fully rounded pill - grey when off, the accent colour when on - with a smooth round white knob
         // that slides across (no hard edges at this small size)
         if (CleanStyle.on()) {
             int w = 16;
             int h = 8;
-            roundRect(g, x, y, w, h, 4, Theme.mix(0xFF3A3B40, CleanStyle.SWITCH_ON, progress));
+            roundRect(g, x, y, w, h, 4, Theme.mix(CleanStyle.SWITCH_OFF_TRACK, accent, progress));
             float cx = x + 4f + progress * (w - 8);
             smoothCircle(g, cx, y + 4f, 2.9f, Theme.mix(0xFFC9CBD0, 0xFFFFFFFF, progress), 1f);
             return;
@@ -237,11 +237,11 @@ public final class Render2D {
             return;
         }
         if (CleanStyle.on()) {
-            // A thin dark line and a round blue knob, no coloured fill
+            // A thin dark line and a round knob in the accent colour, no coloured fill
             g.fill(x, y + 1, x + w, y + 2, 0xFF0E0F11);
             g.fill(x, y + 2, x + w, y + 3, 0x40FFFFFF);
             float f = Math.max(0, Math.min(1, fraction));
-            smoothCircle(g, x + f * w, y + 1.5f, active ? 4f : 3.5f, CleanStyle.KNOB, 1f);
+            smoothCircle(g, x + f * w, y + 1.5f, active ? 4f : 3.5f, accent, 1f);
             return;
         }
         roundRect(g, x, y, w, 3, 1, Theme.TRACK);

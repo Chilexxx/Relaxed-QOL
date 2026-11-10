@@ -661,8 +661,8 @@ public abstract class WindowScreen extends Screen {
     /** The window's body colour (subclasses use it to round off the corners of pictures drawn inside). */
     protected int bodyColor() {
         float alpha = windowAlpha();
-        if (VanillaStyle.on()) return VanillaStyle.PANEL;
-        if (CleanStyle.on()) return CleanStyle.WINDOW;
+        if (VanillaStyle.on()) return Theme.PANEL;
+        if (CleanStyle.on()) return CleanStyle.window();
         return LoverFx.on() ? Theme.withAlpha(0xFF141A2E, Math.max(0.86f, alpha)) : Theme.withAlpha(Theme.WINDOW_BODY, Theme.windowAlpha());
     }
 

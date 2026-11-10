@@ -89,9 +89,14 @@ public class ClickGUI extends Module {
             if (this.cleanStyle.getValue()) this.vanillaStyle.setValue(false);
             com.relaxedqol.client.gui.ClickGuiScreen.styleChanged();
         }),
-        "A clean, modern PvP-client look for every client menu, window and HUD card (the layout stays the same):"
-            + " near-black see-through panels, thin borders, small rounded corners, smooth text, no colours (only white"
-            + " and greys) and plain see-through HUD boxes. Overrides the theme and LoverFella Mode's colours while on");
+        "A frosted-glass look for every client menu, window and HUD card (the layout stays the same): see-through"
+            + " panels in your theme's colours, soft edges, smooth text, switches and sliders in your accent colour, plain"
+            + " see-through HUD boxes. Glass Tint % tints the glass with your accent");
+    /** Clean Style: how much the see-through glass panels and their edges take on the accent colour. */
+    private final Setting<Integer> glassTint = addSetting(new Setting<>("Glass Tint %", 20, 0, 60, 5)
+        .showIf(() -> this.cleanStyle.getValue()),
+        "Clean Style: how much the see-through panels and their edges are tinted with your accent colour (0 = neutral glass)."
+            + " Accent, surface, text, roundness, borders and shadows come from your theme (Edit HUD & Theme)");
     /** The Screenshots module became this switch. */
     private final Setting<Boolean> screenshotTools = addSetting(new Setting<>("Screenshot Tools", true),
         "After F2: the screenshot is copied to your clipboard and one chat line shows Copy / Open / Folder / Delete"
@@ -197,6 +202,12 @@ public class ClickGUI extends Module {
     public static boolean customButtonsSwitch() {
         ClickGUI g = self;
         return g == null || g.customButtons.getValue();
+    }
+
+    /** Clean Style's Glass Tint % as 0..1. */
+    public static float glassTint() {
+        ClickGUI g = self;
+        return g == null ? 0.2f : g.glassTint.getValue() / 100f;
     }
 
     /** Settings > Clean Style. Safe at any time (off until loaded). */
