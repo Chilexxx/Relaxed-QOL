@@ -45,6 +45,12 @@ public final class GlassIcons {
     private static final Map<String, Identifier> TEXTURES = new HashMap<>();
     private static boolean broken;
     private static int cell;
+    /** Liquid Glass: clear glass that only takes a tint of the colour (the Custom Hotbar's Icon Look). */
+    private static boolean liquid;
+
+    public static void setLiquid(boolean on) {
+        liquid = on;
+    }
 
     /** False when the icons could not be made (then the caller draws its own). */
     public static boolean available() {
@@ -56,7 +62,7 @@ public final class GlassIcons {
         if (broken) return false;
         int gs = Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale());
         boolean clean = CleanStyle.on();
-        Identifier id = texture(gs, clean);
+        Identifier id = texture(gs, clean, liquid);
         if (id == null) return false;
         int c = 9 * gs;
         g.pose().pushMatrix();
@@ -66,12 +72,12 @@ public final class GlassIcons {
         return true;
     }
 
-    private static Identifier texture(int gs, boolean clean) {
-        String key = gs + (clean ? "c" : "n");
+    private static Identifier texture(int gs, boolean clean, boolean liquid) {
+        String key = gs + (clean ? "c" : "n") + (liquid ? "l" : "");
         Identifier id = TEXTURES.get(key);
         if (id != null) return id;
         try {
-            BufferedImage img = paint(gs, clean);
+            BufferedImage img = paint(gs, clean, liquid);
             ByteArrayOutputStream png = new ByteArrayOutputStream();
             javax.imageio.ImageIO.write(img, "png", png);
             com.mojang.blaze3d.platform.NativeImage image =
@@ -90,7 +96,7 @@ public final class GlassIcons {
 
     // ------------------------------------------------------------------ painting
 
-    private static BufferedImage paint(int gs, boolean clean) {
+    private static BufferedImage paint(int gs, boolean clean, boolean liquid) {
         cell = 9 * gs;
         Icon[] all = Icon.values();
         BufferedImage img = new BufferedImage(cell * all.length, cell, BufferedImage.TYPE_INT_ARGB);
@@ -100,17 +106,16 @@ public final class GlassIcons {
         g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
         for (int i = 0; i < all.length; i++) {
             Graphics2D cg = (Graphics2D) g.create(i * cell, 0, cell, cell);
-            paintIcon(cg, all[i], clean);
+            if (liquid) paintLiquid(cg, all[i]);
+            else paintIcon(cg, all[i], clean);
             cg.dispose();
         }
         g.dispose();
         return img;
     }
 
-    private static void paintIcon(Graphics2D g, Icon icon, boolean clean) {
-        String n = icon.name();
-        boolean empty = n.endsWith("EMPTY");
-        boolean half = n.endsWith("HALF");
+    /** The shape and its two colours for an icon: {shape, light, dark}. */
+    private static Object[] look(String n) {
         Shape shape;
         int light;
         int dark;
@@ -142,6 +147,17 @@ public final class GlassIcons {
                 default -> 0xFFC0142A;
             };
         }
+        return new Object[]{shape, light, dark};
+    }
+
+    private static void paintIcon(Graphics2D g, Icon icon, boolean clean) {
+        String n = icon.name();
+        boolean empty = n.endsWith("EMPTY");
+        boolean half = n.endsWith("HALF");
+        Object[] lk = look(n);
+        Shape shape = (Shape) lk[0];
+        int light = (int) lk[1];
+        int dark = (int) lk[2];
         // Shadow under it, then the empty glass, then the filled part (clipped to its half)
         Shape shadow = AffineTransform.getTranslateInstance(0, cell * 0.06).createTransformedShape(shape);
         g.setColor(new Color(0, 0, 0, clean ? 70 : 90));
@@ -158,6 +174,84 @@ public final class GlassIcons {
             f.dispose();
         }
         paintRim(g, shape, clean, empty);
+    }
+
+    // ------------------------------------------------------------------ Liquid Glass
+
+    /**
+     * Clear glass, like a real glass charm: the body is mostly see-through and only tinted; the colour gathers in a
+     * thick inner edge (glass is coloured most where it is thickest), light pools at the bottom, a sharp white
+     * highlight runs along the top, the rim catches light on top and darkens below.
+     */
+    private static void paintLiquid(Graphics2D g, Icon icon) {
+        String n = icon.name();
+        boolean empty = n.endsWith("EMPTY");
+        boolean half = n.endsWith("HALF");
+        boolean food = n.startsWith("FOOD") || n.startsWith("HUNGER");
+        Object[] lk = look(n);
+        Shape shape = (Shape) lk[0];
+        int light = (int) lk[1];
+        int dark = (int) lk[2];
+        // A faint shadow so it stands off the world
+        g.setColor(new Color(0, 0, 0, 45));
+        g.fill(AffineTransform.getTranslateInstance(0, cell * 0.05).createTransformedShape(shape));
+        // Empty glass: nearly clear
+        g.setColor(new Color(255, 255, 255, 22));
+        g.fill(shape);
+        Graphics2D e = (Graphics2D) g.create();
+        e.clip(shape);
+        e.setStroke(new BasicStroke(cell * 0.16f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        e.setColor(new Color(255, 255, 255, 34));
+        e.draw(shape);
+        e.dispose();
+        if (!empty) {
+            Graphics2D f = (Graphics2D) g.create();
+            if (half) f.clip(new Rectangle2D.Double(food ? cell / 2.0 : 0, 0, cell / 2.0, cell));
+            f.clip(shape);
+            // The tint: light at the top, deeper at the bottom, still see-through
+            f.setPaint(new GradientPaint(0, 0, color(light, 95), 0, cell, color(dark, 150)));
+            f.fill(new Rectangle2D.Double(0, 0, cell, cell));
+            // The thick coloured edge inside
+            f.setStroke(new BasicStroke(cell * 0.22f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            f.setPaint(new GradientPaint(0, 0, color(light, 120), 0, cell, color(dark, 235)));
+            f.draw(shape);
+            // Light pooling at the bottom (it comes through the glass and gathers there)
+            f.setPaint(new RadialGradientPaint(cell * 0.5f, cell * 0.86f, cell * 0.42f, new float[]{0f, 1f},
+                new Color[]{new Color(255, 255, 255, 120), new Color(255, 255, 255, 0)}));
+            f.fill(new Rectangle2D.Double(0, 0, cell, cell));
+            f.dispose();
+        }
+        // The highlight: a sharp white curve along the top, clipped to the shape
+        Graphics2D h = (Graphics2D) g.create();
+        h.clip(shape);
+        h.setStroke(new BasicStroke(Math.max(1f, cell * 0.075f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        Shape inner = AffineTransform.getTranslateInstance(cell * 0.05, cell * 0.07).createTransformedShape(
+            scaled(shape, 0.86));
+        h.clip(new Rectangle2D.Double(0, 0, cell, cell * 0.42));
+        h.setPaint(new GradientPaint(0, 0, new Color(255, 255, 255, empty ? 150 : 235), cell, 0, new Color(255, 255, 255, 40)));
+        h.draw(inner);
+        h.dispose();
+        // A tiny sparkle
+        double d = Math.max(1.0, cell * 0.09);
+        g.setColor(new Color(255, 255, 255, 240));
+        g.fill(new Ellipse2D.Double(cell * (food ? 0.55 : 0.22), cell * (food ? 0.20 : 0.24), d, d));
+        // The rim: bright where light hits (top), darker below
+        Graphics2D r = (Graphics2D) g.create();
+        r.setStroke(new BasicStroke(Math.max(1f, cell / 14f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        r.setPaint(new GradientPaint(0, 0, new Color(255, 255, 255, 200), 0, cell,
+            empty ? new Color(255, 255, 255, 60) : color(dark, 200)));
+        r.draw(shape);
+        r.dispose();
+    }
+
+    /** The shape made smaller around its own middle. */
+    private static Shape scaled(Shape s, double f) {
+        Rectangle2D b = s.getBounds2D();
+        AffineTransform t = new AffineTransform();
+        t.translate(b.getCenterX(), b.getCenterY());
+        t.scale(f, f);
+        t.translate(-b.getCenterX(), -b.getCenterY());
+        return t.createTransformedShape(s);
     }
 
     /** Empty: dark see-through glass with a faint shine. */

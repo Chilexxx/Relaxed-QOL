@@ -28,6 +28,10 @@ public class Hotbar extends Module {
     private final Setting<String> bars = addSetting(Setting.mode("Hearts & Hunger", "Styled", "Styled", "Minecraft"),
         "Styled: the normal hearts and drumsticks layout with the client's icons (glossy glass in Clean Style)."
             + " Minecraft: Minecraft's own icons");
+    private final Setting<String> iconLook = addSetting(Setting.mode("Icon Look", "Glossy", "Glossy", "Liquid Glass")
+            .showIf(() -> this.bars.getValue().equals("Styled")),
+        "Glossy: shiny coloured icons. Liquid Glass: clear glass icons - the colour only tints the glass, with a bright"
+            + " highlight on top and light gathering at the bottom");
     private final Setting<Boolean> slotNumbers = addSetting(new Setting<>("Slot Numbers", false),
         "Small 1-9 in the corner of each slot");
     private final Setting<Boolean> slide = addSetting(new Setting<>("Smooth Slide", true),
@@ -263,6 +267,7 @@ public class Hotbar extends Module {
     public void renderArmor(GuiGraphicsExtractor g) {
         Player p = mc.player;
         if (p == null) return;
+        GlassIcons.setLiquid(iconLook.getValue().equals("Liquid Glass"));
         int armor = p.getArmorValue();
         if (armor <= 0) return;
         int left = g.guiWidth() / 2 - 91;
@@ -278,6 +283,7 @@ public class Hotbar extends Module {
     public void renderHealth(GuiGraphicsExtractor g) {
         Player p = mc.player;
         if (p == null) return;
+        GlassIcons.setLiquid(iconLook.getValue().equals("Liquid Glass"));
         int left = g.guiWidth() / 2 - 91;
         int top = g.guiHeight() - 39;
         float max = Math.max(1f, p.getMaxHealth());
@@ -325,6 +331,7 @@ public class Hotbar extends Module {
     public void renderFood(GuiGraphicsExtractor g) {
         Player p = mc.player;
         if (p == null) return;
+        GlassIcons.setLiquid(iconLook.getValue().equals("Liquid Glass"));
         // On a horse etc. Minecraft shows its hearts there instead
         if (p.getVehicle() instanceof LivingEntity) return;
         int right = g.guiWidth() / 2 + 91;
