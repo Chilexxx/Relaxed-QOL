@@ -67,11 +67,16 @@ public class ClickGUI extends Module {
      * The client's own look on Minecraft's menus (rounded dark buttons and text fields in the title screen, options,
      * server list, join screens...). Off = Minecraft's normal buttons everywhere.
      */
-    private final Setting<Boolean> customButtons = addSetting(new Setting<>("Custom Menu Buttons", true)
-        .lockedWhen(() -> this.vanillaStyle.getValue() ? "Vanilla Style always uses Minecraft's own buttons, so this switch"
-            + " does nothing while it is on" : null),
-        "The client's rounded dark buttons and text fields in all Minecraft menus (settings, server list, joining a"
-            + " server...). Off = Minecraft's normal buttons and menus again");
+    private final Setting<Boolean> customButtons = addSetting(new Setting<>("Custom Menu Buttons", true),
+        "The client's own buttons and text fields in all Minecraft menus (settings, server list, joining a server...),"
+            + " in any style - pick the look with Menu Button Look. Off = Minecraft's normal buttons and menus again");
+    /** Which look Minecraft's menu buttons get, picked on its own - whatever style the client itself uses. */
+    private final Setting<String> buttonLook = addSetting(Setting.mode("Menu Button Look", "Match Style",
+            "Match Style", "Rounded Dark", "Glass", "Minecraft")
+        .showIf(() -> this.customButtons.getValue()),
+        "The look of Minecraft's menu buttons and text fields. Match Style: follows the client's style (glass in Clean"
+            + " Style, Minecraft's own in Vanilla Style, rounded dark otherwise). Rounded Dark / Glass / Minecraft: always"
+            + " that one, whatever style is on");
     /**
      * Every client screen, window, button, slider and card drawn like Minecraft's own menus: square dark panels,
      * the game's button / slider / text box textures, the pixel font with shadows. Overrides the theme, the custom
@@ -83,7 +88,7 @@ public class ClickGUI extends Module {
             com.relaxedqol.client.gui.ClickGuiScreen.styleChanged();
         }),
         "Makes every client menu, window, button and card look like normal Minecraft: square dark panels, Minecraft's"
-            + " own buttons, sliders and text boxes, and the pixel font. Overrides the theme, Custom Menu Buttons and"
+            + " own buttons, sliders and text boxes, and the pixel font. Overrides the theme and"
             + " LoverFella Mode's colours while on");
     /**
      * A calm, modern PvP-client look for every client menu, window and card (same layout): near-black see-through
@@ -199,8 +204,21 @@ public class ClickGUI extends Module {
 
     /** Safe at any time, also while sprites are drawn very early (on until the settings exist). Off in Vanilla Style. */
     public static boolean customButtons() {
+        return !"Minecraft".equals(buttonLook());
+    }
+
+    /**
+     * The look Minecraft's menu buttons get right now: "Rounded Dark", "Glass" or "Minecraft" (Match Style already
+     * worked out). Safe at any time (Rounded Dark until the settings exist).
+     */
+    public static String buttonLook() {
         ClickGUI g = self;
-        return g == null || (g.customButtons.getValue() && !g.vanillaStyle.getValue());
+        if (g == null) return "Rounded Dark";
+        if (!g.customButtons.getValue()) return "Minecraft";
+        String look = g.buttonLook.getValue();
+        if (!"Match Style".equals(look)) return look;
+        if (g.vanillaStyle.getValue()) return "Minecraft";
+        return g.cleanStyle.getValue() ? "Glass" : "Rounded Dark";
     }
 
     /** The Custom Menu Buttons switch itself (on in every style, for LoverFella Mode's menu decorations). */

@@ -39,7 +39,7 @@ public final class VanillaStyle {
     public static void button(GuiGraphicsExtractor g, Font font, String label, int x, int y, int w, int h, boolean hover,
                               boolean active, boolean enabled) {
         Identifier sprite = !enabled ? BUTTON_OFF : hover || active ? BUTTON_HOVER : BUTTON;
-        g.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, w, h, 0xFFFFFFFF);
+        MenuStyle.minecraftSprite(g, sprite, x, y, w, h);
         if (label == null || label.isEmpty()) return;
         // White text like Minecraft's buttons ("on" shows as the highlighted button, not as yellow text)
         int color = !enabled ? TEXT_GRAY : TEXT;
@@ -55,7 +55,7 @@ public final class VanillaStyle {
             box(g, x, y, w, h, hover);
             return;
         }
-        g.blitSprite(RenderPipelines.GUI_TEXTURED, hover ? BUTTON_HOVER : BUTTON, x, y, w, h, 0xFFFFFFFF);
+        MenuStyle.minecraftSprite(g, hover ? BUTTON_HOVER : BUTTON, x, y, w, h);
     }
 
     /** A small black box with a 1 px grey edge (white when hot), like Minecraft's text boxes. */
@@ -76,7 +76,7 @@ public final class VanillaStyle {
 
     /** Minecraft's text box frame (black inside, grey edge; white edge when focused). */
     public static void field(GuiGraphicsExtractor g, int x, int y, int w, int h, boolean focused) {
-        g.blitSprite(RenderPipelines.GUI_TEXTURED, focused ? FIELD_FOCUS : FIELD, x, y, w, h, 0xFFFFFFFF);
+        MenuStyle.minecraftSprite(g, focused ? FIELD_FOCUS : FIELD, x, y, w, h);
     }
 
     /**

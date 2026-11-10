@@ -29,11 +29,26 @@ public final class MenuStyle {
      * Minecraft is about to draw a sprite: its buttons / text fields become the client's rounded ones while
      * Settings > Custom Menu Buttons is on; anything else (and everything when it is off) stays as it is.
      */
+    /** True while Vanilla Style draws its own buttons: those always stay Minecraft's, whatever Menu Button Look says. */
+    private static boolean keepMinecraft;
+
+    /** Draws one of Minecraft's own button / text field sprites exactly as it is (Vanilla Style's windows). */
+    public static void minecraftSprite(GuiGraphicsExtractor g, net.minecraft.resources.Identifier sprite, int x, int y, int w, int h) {
+        keepMinecraft = true;
+        try {
+            g.blitSprite(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, sprite, x, y, w, h, 0xFFFFFFFF);
+        } finally {
+            keepMinecraft = false;
+        }
+    }
+
     public static net.minecraft.resources.Identifier buttonSprite(net.minecraft.resources.Identifier sprite) {
+        if (keepMinecraft) return sprite;
         if (sprite == null || !"minecraft".equals(sprite.getNamespace()) || !OWN_SPRITES.contains(sprite.getPath())) return sprite;
-        if (!ClickGUI.customButtons()) return sprite;
-        // Clean Style: frosted-glass buttons and text boxes (widget/clean_button..., see-through with a light edge)
-        if (CleanStyle.on()) {
+        String look = ClickGUI.buttonLook();
+        if ("Minecraft".equals(look)) return sprite;
+        // Glass (Clean Style's, or picked in Menu Button Look): see-through buttons and text boxes with a light edge
+        if ("Glass".equals(look)) {
             return net.minecraft.resources.Identifier.fromNamespaceAndPath("relaxed-qol",
                 "widget/clean_" + sprite.getPath().substring("widget/".length()));
         }
