@@ -972,13 +972,13 @@ public class ClickGuiScreen extends Screen {
         boolean bound = module.getKey() >= 0;
         String bind = module == binding ? "\u2026" : (bound ? KeyUtil.name(module.getKey()) : "Bind");
         if (bound || module == binding || hover) {
-            int capFill = module == binding ? Theme.withAlpha(accent, 0.35f) : overBind ? 0x24FFFFFF : Theme.PILL;
+            int capFill = module == binding ? Theme.withAlpha(accent, 0.35f) : overBind ? 0x40FFFFFF : bound ? KEYCAP_FILL : Theme.PILL;
             if (!vanillaBox(g, p[0], y + 2, p[1], h - 4, module == binding || overBind)) {
                 Render2D.roundRect(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL, capFill);
                 Render2D.roundOutline(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL,
-                    module == binding ? Theme.withAlpha(accent, 0.8f) : overBind ? 0x40FFFFFF : Theme.HAIRLINE);
+                    module == binding ? Theme.withAlpha(accent, 0.8f) : overBind ? 0x73FFFFFF : bound ? KEYCAP_EDGE : Theme.HAIRLINE);
             }
-            int capText = module == binding || overBind ? Theme.TEXT : bound ? Theme.TEXT_SECONDARY : Theme.TEXT_FAINT;
+            int capText = module == binding || overBind || bound ? Theme.TEXT : Theme.TEXT_FAINT;
             CrispText.centered(g, font, bind, p[0] + p[1] / 2, y + 4, capText);
         }
 
@@ -1001,6 +1001,10 @@ public class ClickGuiScreen extends Screen {
      * One setting row. the name is shortened so it never runs into the value on the right (long names in a
      * narrow panel used to overlap their value), and colour settings are a swatch that opens the colour picker.
      */
+    /** A bound key shown next to a module: a dark box with a clear edge, so the key is easy to see on any background. */
+    private static final int KEYCAP_FILL = 0x80000000;
+    private static final int KEYCAP_EDGE = 0x66FFFFFF;
+
     /** Vanilla Style: a small value box drawn as a Minecraft button. False = not in Vanilla Style (draw the normal box). */
     private static boolean vanillaBox(GuiGraphicsExtractor g, int x, int y, int w, int h, boolean hot) {
         if (!VanillaStyle.on()) return false;
@@ -1577,10 +1581,10 @@ public class ClickGuiScreen extends Screen {
             // The bound key as a small key cap after the name
             int cx = rx + 8 + CrispText.width(font, shown) + 5;
             if (!vanillaBox(g, cx, y + 3, capW, rh - 4, false)) {
-                Render2D.roundRect(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, Theme.PILL);
-                Render2D.roundOutline(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, Theme.HAIRLINE);
+                Render2D.roundRect(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, KEYCAP_FILL);
+                Render2D.roundOutline(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, KEYCAP_EDGE);
             }
-            CrispText.text(g, font, cap, cx + 4, y + 5, Theme.TEXT_FAINT);
+            CrispText.text(g, font, cap, cx + 4, y + 5, Theme.TEXT);
         }
         if (module.isSettingsOnly()) return;
         if (action) {
