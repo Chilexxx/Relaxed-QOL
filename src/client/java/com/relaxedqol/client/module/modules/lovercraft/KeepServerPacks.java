@@ -106,6 +106,11 @@ public class KeepServerPacks extends Module {
 
     /** Until when the restored packs are pushed into use on the title screen (0 = not now). */
     private static long applyUntil;
+
+    /** Saved server packs are being put back right now (the loading screen says so). */
+    public static boolean restoring() {
+        return applyUntil != 0;
+    }
     private static java.lang.reflect.Field managerField;
     private static Method managerTick;
 

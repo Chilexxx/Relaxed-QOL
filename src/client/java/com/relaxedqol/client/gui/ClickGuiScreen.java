@@ -425,7 +425,8 @@ public class ClickGuiScreen extends Screen {
             for (Module module : modules) {
                 if (module.isEnabled()) panel.enabledCount++;
             }
-            if (COLLAPSED.contains(category) && search.isEmpty()) {
+            // Folded - once its folding animation has finished (until then it is laid out open and drawn shrinking)
+            if (COLLAPSED.contains(category) && search.isEmpty() && FOLD.getOrDefault(category, 0f) <= 0.001f) {
                 panel.collapsed = true;
                 panels.add(panel);
                 continue;
@@ -804,8 +805,32 @@ public class ClickGuiScreen extends Screen {
         return overCard && !overMenu(mx, my);
     }
 
+    /** How far each panel is unfolded (1 = open, 0 = folded), eased towards its target every frame. */
+    private static final java.util.Map<ModuleCategory, Float> FOLD = new java.util.EnumMap<>(ModuleCategory.class);
+    private static final java.util.Map<ModuleCategory, Long> FOLD_AT = new java.util.EnumMap<>(ModuleCategory.class);
+
+    /** Moves a panel's fold towards open / folded (about 180 ms, the theme's Animation % applies) and returns it. */
+    private static float foldStep(ModuleCategory c, boolean open) {
+        long now = System.nanoTime();
+        Long last = FOLD_AT.put(c, now);
+        float cur = FOLD.getOrDefault(c, open ? 1f : 0f);
+        float ms = Theme.animMs(180f);
+        float dt = last == null ? 1f : (now - last) / 1_000_000f;
+        float step = ms <= 0 ? 1f : Math.min(1f, dt / ms);
+        cur = open ? Math.min(1f, cur + step) : Math.max(0f, cur - step);
+        FOLD.put(c, cur);
+        return cur;
+    }
+
     private void drawPanel(GuiGraphicsExtractor g, Panel panel, int index, Row hoverRow, int mx, int my) {
         int accent = Theme.accent(index * 3);
+        // Folding / unfolding: the body slides shut / open (eased), the rows clipped to what is still showing
+        float open = foldStep(panel.category, !COLLAPSED.contains(panel.category) || !search.isEmpty());
+        if (!panel.collapsed && open < 0.999f) {
+            float e = 1f - (1f - open) * (1f - open) * (1f - open);
+            panel.bodyH = Math.round(panel.bodyH * e);
+            if (panel.bodyH < 3) panel.collapsed = true;
+        }
         boolean collapsed = panel.collapsed;
         int totalH = HEADER_H + (collapsed ? 0 : panel.bodyH);
 
@@ -833,6 +858,7 @@ public class ClickGuiScreen extends Screen {
         int bodyTop = panel.bodyY;
         int bodyBottom = panel.bodyY + panel.bodyH;
         Render2D.roundRectBottom(g, panel.x, bodyTop, panel.w, panel.bodyH, RADIUS, Theme.panel());
+        if (CleanStyle.on()) CleanStyle.gloss(g, panel.x, panel.y, panel.w, totalH, RADIUS);
         g.enableScissor(panel.x, bodyTop, panel.x + panel.w, bodyBottom - 1);
 
         int lane = panel.contentH > panel.bodyH ? SCROLL_LANE : 0;
@@ -1425,6 +1451,7 @@ public class ClickGuiScreen extends Screen {
         CrispText.right(g, font, on + " on", x + w - 10, y + 7, Theme.TEXT_FAINT);
         Render2D.headerLine(g, x, y + APP_HEADER - 1, w, accent);
         Render2D.underGlow(g, x + 1, y + APP_HEADER, w - 2, accent);
+        if (CleanStyle.on()) CleanStyle.gloss(g, x, y, w, h, RADIUS);
 
         int bodyY = y + APP_HEADER;
         int bodyH = h - APP_HEADER;

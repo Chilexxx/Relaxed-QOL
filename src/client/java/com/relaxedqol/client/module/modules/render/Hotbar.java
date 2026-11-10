@@ -77,11 +77,7 @@ public class Hotbar extends Module {
             int tint = Theme.mix(0xFF0A0B0E, Theme.accent(), com.relaxedqol.client.module.modules.client.ClickGUI.glassTint() * 0.5f);
             Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(tint, 0.38f * a));
             Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(0xFFFFFFFF, 0.06f * a));
-            if (Theme.SHEEN > 0.01f) {
-                int top = Theme.withAlpha(0xFFFFFFFF, Math.min(0.22f, 0.10f * Theme.SHEEN) * a);
-                Render2D.clipRounded(g, x, y, w, h, r, () -> g.fillGradient(x, y, x + w, y + h * 2 / 3, top, 0x00FFFFFF));
-            }
-            Render2D.roundOutline(g, x, y, w, h, r, Theme.withAlpha(0xFFFFFFFF, 0.30f * Math.max(0.5f, a)));
+            CleanStyle.gloss(g, x, y, w, h, r);
             return;
         }
         Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(Theme.panel(), 0.80f * a));

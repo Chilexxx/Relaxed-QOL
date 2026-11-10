@@ -4,6 +4,10 @@
 * Panels layout: click a category's title to fold it in (drag it to move it, like before)
 * Radar: clicking it opens a window in the middle of the screen instead of the whole screen
 * More FPS: every HUD card is kept and repeated on its own, so one card with items no longer makes all of them draw every frame
++ Loading screen: when the game takes a while to load resource packs, a card says what is loading and for how long
+* Clean Style: liquid glass everywhere - a glossy shine, a bright edge on top and light along the bottom on windows, menus, pop-ups and the hotbar
+* Liquid Glass icons: more depth - a second reflection and a darker band under the shine
+* Panels layout: folding and unfolding a category slides smoothly
 * What's New: shows once after every update, as soon as the title screen is up
 - Profiles: any profile can be deleted (also the one in use), new profiles start from the default settings, and servers linked to a profile switch every time you join
 

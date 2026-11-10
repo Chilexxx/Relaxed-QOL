@@ -81,15 +81,12 @@ public final class Toasts {
             // Clean Style: see-through glass in the theme's colours, a thin light edge, white text; the pop-up's
             // colour only as a small dot and the time line
             if (CleanStyle.on()) {
-                // Frosted glass: a see-through panel lightly tinted with the accent, a soft light sheen on the top
-                // half, a thin bright edge, smooth text; the pop-up's colour is only a small soft dot
+                // Liquid glass: see-through, lightly tinted with the accent, glossy finish
                 int r = Math.min(h / 2, 10);
                 int glass = Theme.mix(Theme.PANEL, Theme.accent(), 0.08f + com.relaxedqol.client.module.modules.client.ClickGUI.glassTint() * 0.4f);
                 Render2D.shadow(g, x, yy, w, h, r);
                 Render2D.roundRect(g, x, yy, w, h, r, Theme.fade(Theme.withAlpha(glass, 0.55f), alpha));
-                if (Theme.SHEEN > 0.01f) Render2D.roundRect(g, x + 1, yy + 1, w - 2, h / 2, r - 1,
-                    Theme.fade(Theme.withAlpha(0xFFFFFFFF, Math.min(0.16f, 0.07f * Theme.SHEEN)), alpha));
-                Render2D.roundOutline(g, x, yy, w, h, r, Theme.fade(0x38FFFFFF, alpha));
+                if (alpha > 0.6f) CleanStyle.gloss(g, x, yy, w, h, r);
                 Render2D.smoothCircle(g, x + 10f, yy + h / 2f, 2.2f, Theme.fade(Theme.withAlpha(t.color(), 0.9f), alpha), 1f);
                 // Time left: a faint white hairline inside the bottom edge
                 int barW = Math.round((w - 2 * r) * left);

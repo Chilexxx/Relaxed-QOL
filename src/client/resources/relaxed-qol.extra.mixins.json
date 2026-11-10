@@ -25,7 +25,8 @@
 		"DownloadedPackSourceMixin",
 		"ResourcePackPushMixin",
 		"ChatLeaveMixin",
-		"ChatLeaveGuiMixin"
+		"ChatLeaveGuiMixin",
+		"LoadingOverlayMixin"
 	],
 	"injectors": {
 		"defaultRequire": 0

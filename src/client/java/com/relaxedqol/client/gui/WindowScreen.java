@@ -577,11 +577,8 @@ public abstract class WindowScreen extends Screen {
             int body = bodyColor();
             Render2D.roundRect(g, wx, wy, ww, wh, Theme.R_SURFACE, body);
             Render2D.roundRectTop(g, wx, wy, ww, TITLE_H, Theme.R_SURFACE, 0x08FFFFFF);
-            // Clean Style: the glass shine on the top part (Style Editor > Glass Shine)
-            if (CleanStyle.on() && Theme.SHEEN > 0.01f) {
-                Render2D.roundRectTop(g, wx + 1, wy + 1, ww - 2, Math.max(TITLE_H, wh / 3), Math.max(0, Theme.R_SURFACE - 1),
-                    Theme.withAlpha(0xFFFFFFFF, Math.min(0.14f, 0.05f * Theme.SHEEN)));
-            }
+            // Clean Style: liquid glass (shine, specular top line, light along the bottom, rim)
+            if (CleanStyle.on()) CleanStyle.gloss(g, wx, wy, ww, wh, Theme.R_SURFACE);
             g.fill(wx + 1, wy + TITLE_H - 1, wx + ww - 1, wy + TITLE_H, Theme.HAIRLINE);
             Render2D.roundOutline(g, wx, wy, ww, wh, Theme.R_SURFACE, Theme.BORDER);
         }

@@ -209,12 +209,15 @@ public final class GlassIcons {
             if (half) f.clip(new Rectangle2D.Double(food ? cell / 2.0 : 0, 0, cell / 2.0, cell));
             f.clip(shape);
             // The tint: light at the top, deeper at the bottom, still see-through
-            f.setPaint(new GradientPaint(0, 0, color(light, 95), 0, cell, color(dark, 150)));
+            f.setPaint(new GradientPaint(0, 0, color(light, 70), 0, cell, color(dark, 140)));
             f.fill(new Rectangle2D.Double(0, 0, cell, cell));
             // The thick coloured edge inside
             f.setStroke(new BasicStroke(cell * 0.22f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            f.setPaint(new GradientPaint(0, 0, color(light, 120), 0, cell, color(dark, 235)));
+            f.setPaint(new GradientPaint(0, 0, color(light, 110), 0, cell, color(dark, 245)));
             f.draw(shape);
+            // A darker band just under the highlight (glass bends the light away there) - gives it depth
+            f.setPaint(new GradientPaint(0, cell * 0.30f, color(dark, 0), 0, cell * 0.48f, color(dark, 70)));
+            f.fill(new Rectangle2D.Double(0, cell * 0.30, cell, cell * 0.18));
             // Light pooling at the bottom (it comes through the glass and gathers there)
             f.setPaint(new RadialGradientPaint(cell * 0.5f, cell * 0.86f, cell * 0.42f, new float[]{0f, 1f},
                 new Color[]{new Color(255, 255, 255, 120), new Color(255, 255, 255, 0)}));
@@ -231,6 +234,13 @@ public final class GlassIcons {
         h.setPaint(new GradientPaint(0, 0, new Color(255, 255, 255, empty ? 150 : 235), cell, 0, new Color(255, 255, 255, 40)));
         h.draw(inner);
         h.dispose();
+        // A second, softer reflection on the lower right edge (light from behind, bent through the glass)
+        Graphics2D b = (Graphics2D) g.create();
+        b.clip(new Rectangle2D.Double(cell * 0.55, cell * 0.45, cell * 0.45, cell * 0.55));
+        b.setStroke(new BasicStroke(Math.max(1f, cell * 0.06f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        b.setColor(new Color(255, 255, 255, empty ? 50 : 110));
+        b.draw(scaled(shape, 0.84));
+        b.dispose();
         // A tiny sparkle
         double d = Math.max(1.0, cell * 0.09);
         g.setColor(new Color(255, 255, 255, 240));
