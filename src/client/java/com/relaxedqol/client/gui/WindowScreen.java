@@ -662,7 +662,7 @@ public abstract class WindowScreen extends Screen {
     protected int bodyColor() {
         float alpha = windowAlpha();
         if (VanillaStyle.on()) return VanillaStyle.PANEL;
-        if (CleanStyle.on()) return CleanStyle.PANEL;
+        if (CleanStyle.on()) return CleanStyle.WINDOW;
         return LoverFx.on() ? Theme.withAlpha(0xFF141A2E, Math.max(0.86f, alpha)) : Theme.withAlpha(Theme.WINDOW_BODY, Theme.windowAlpha());
     }
 

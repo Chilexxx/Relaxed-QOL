@@ -218,11 +218,16 @@ public final class Render2D {
         if (CleanStyle.on()) {
             int w = 16;
             int h = 8;
-            g.fill(x, y, x + w, y + h, 0xFF4A4B50);
-            g.fill(x + 1, y + 1, x + w - 1, y + h - 1, 0xFF1E1F22);
-            int bw = 9;
+            // A dark rounded slot with a soft edge...
+            roundRect(g, x, y, w, h, 2, 0xE0141517);
+            roundOutline(g, x, y, w, h, 2, 0x47FFFFFF);
+            // ...and a rounded block that slides across: soft green on the right when on, soft red on the left when off,
+            // with a faint light line on its top edge so it reads as a raised piece rather than a flat sticker
+            int bw = 8;
             int bx = x + 1 + Math.round(progress * (w - 2 - bw));
-            g.fill(bx, y + 1, bx + bw, y + h - 1, Theme.mix(CleanStyle.SWITCH_OFF, CleanStyle.SWITCH_ON, progress));
+            int color = Theme.mix(CleanStyle.SWITCH_OFF, CleanStyle.SWITCH_ON, progress);
+            roundRect(g, bx, y + 1, bw, h - 2, 2, color);
+            g.fill(bx + 1, y + 1, bx + bw - 1, y + 2, 0x40FFFFFF);
             return;
         }
         int w = 16;

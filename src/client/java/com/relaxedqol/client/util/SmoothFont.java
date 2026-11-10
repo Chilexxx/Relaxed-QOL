@@ -38,7 +38,141 @@ public final class SmoothFont {
 
     /** Text drawn / measured from here until {@link #end} uses the smooth font. Calls nest. */
     public static void begin() {
-        if (depth++ == 0) swapWidths(true);
+        if (depth++ == 0) {
+            swapWidths(true);
+            smoothAtlases();
+        }
+    }
+
+    // ------------------------------------------------------------------ smooth sampling of the font's own textures
+
+    private static long atlasCheckedAt;
+    private static boolean atlasBroken;
+    private static boolean atlasLogged;
+    private static Object linearSampler;
+    private static java.lang.reflect.Field fontManagerField;
+    private static java.lang.reflect.Field fontSetsField;
+
+    /**
+     * Minecraft samples every font texture pixel by pixel ("nearest") - right for its blocky font, but it makes a
+     * smooth font look grainy and jagged (letters land between screen pixels and get chopped). The client's own
+     * font textures (fonts relaxed-qol:ui_N / ui_bold_N only - Minecraft's font is never touched) are switched to
+     * smooth (linear) sampling, like the minimap. Checked about once a second, because the font adds new textures as
+     * more letters are used. Found by reflection; if this game version does it differently, nothing changes.
+     */
+    private static void smoothAtlases() {
+        if (atlasBroken || !enabled()) return;
+        long now = System.currentTimeMillis();
+        if (now - atlasCheckedAt < 1000) return;
+        atlasCheckedAt = now;
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            if (linearSampler == null) linearSampler = makeLinearSampler();
+            if (fontManagerField == null) {
+                for (java.lang.reflect.Field f : Minecraft.class.getDeclaredFields()) {
+                    if (f.getType().getName().equals("net.minecraft.client.gui.font.FontManager")) {
+                        f.setAccessible(true);
+                        fontManagerField = f;
+                    }
+                }
+                if (fontManagerField == null) throw new NoSuchFieldException("FontManager");
+            }
+            Object manager = fontManagerField.get(mc);
+            java.util.Map<?, ?> sets = fontSets(manager);
+            int done = 0;
+            for (java.util.Map.Entry<?, ?> e : sets.entrySet()) {
+                String id = String.valueOf(e.getKey());
+                if (!id.contains(":ui_")) continue;
+                if (!id.startsWith(NS + ":")) continue;
+                for (Object texture : textures(e.getValue())) done += linear(texture) ? 1 : 0;
+            }
+            if (!atlasLogged && done > 0) {
+                atlasLogged = true;
+                com.relaxedqol.RelaxedQolMod.LOGGER.info("Smooth Font: smooth (linear) sampling on for the smooth font's textures");
+            }
+        } catch (Throwable e) {
+            atlasBroken = true;
+            com.relaxedqol.RelaxedQolMod.LOGGER.warn("Smooth Font: could not switch the font textures to smooth sampling"
+                + " (the text stays as it was): " + e);
+        }
+    }
+
+    /** The client's font namespace (the mod id). */
+    private static final String NS = com.relaxedqol.RelaxedQolMod.MOD_ID;
+
+    private static Object makeLinearSampler() throws ReflectiveOperationException {
+        Class<?> rs = Class.forName("com.mojang.blaze3d.systems.RenderSystem");
+        Object cache = rs.getMethod("getSamplerCache").invoke(null);
+        Method get = null;
+        for (Method m : cache.getClass().getMethods()) {
+            if (m.getName().equals("getSampler") && m.getParameterCount() == 5) get = m;
+        }
+        if (get == null) throw new NoSuchMethodException("SamplerCache.getSampler");
+        Class<?>[] p = get.getParameterTypes();
+        Object clamp = enumConst(p[0], "CLAMP_TO_EDGE", "CLAMP");
+        Object linear = enumConst(p[2], "LINEAR");
+        return get.invoke(cache, clamp, clamp, linear, linear, false);
+    }
+
+    private static Object enumConst(Class<?> type, String... names) throws NoSuchFieldException {
+        for (Object c : type.getEnumConstants()) {
+            for (String n : names) if (((Enum<?>) c).name().equals(n)) return c;
+        }
+        throw new NoSuchFieldException(type.getSimpleName() + "." + names[0]);
+    }
+
+    /** FontManager's map of font id -> font set (found by its type, not its name). */
+    private static java.util.Map<?, ?> fontSets(Object manager) throws ReflectiveOperationException {
+        if (fontSetsField == null) {
+            for (java.lang.reflect.Field f : manager.getClass().getDeclaredFields()) {
+                if (java.lang.reflect.Modifier.isStatic(f.getModifiers()) || !java.util.Map.class.isAssignableFrom(f.getType())) continue;
+                f.setAccessible(true);
+                Object v = f.get(manager);
+                if (!(v instanceof java.util.Map<?, ?> m) || m.isEmpty()) continue;
+                Object any = m.values().iterator().next();
+                if (any != null && any.getClass().getName().equals("net.minecraft.client.gui.font.FontSet")) {
+                    fontSetsField = f;
+                    break;
+                }
+            }
+            if (fontSetsField == null) throw new NoSuchFieldException("FontManager font sets");
+        }
+        return (java.util.Map<?, ?>) fontSetsField.get(manager);
+    }
+
+    /** The textures a font set has made so far (a list of FontTexture). */
+    private static java.util.List<Object> textures(Object fontSet) throws ReflectiveOperationException {
+        java.util.List<Object> out = new java.util.ArrayList<>();
+        for (java.lang.reflect.Field f : fontSet.getClass().getDeclaredFields()) {
+            if (java.lang.reflect.Modifier.isStatic(f.getModifiers()) || !java.util.List.class.isAssignableFrom(f.getType())) continue;
+            f.setAccessible(true);
+            Object v = f.get(fontSet);
+            if (!(v instanceof java.util.List<?> list)) continue;
+            for (Object t : list) {
+                if (t != null && t.getClass().getName().equals("net.minecraft.client.gui.font.FontTexture")) out.add(t);
+            }
+        }
+        return out;
+    }
+
+    private static java.lang.reflect.Field samplerField;
+
+    /** Puts the smooth sampler on one font texture. True when it is (now) smooth. */
+    private static boolean linear(Object texture) throws ReflectiveOperationException {
+        if (samplerField == null) {
+            for (Class<?> c = texture.getClass(); c != null && samplerField == null; c = c.getSuperclass()) {
+                for (java.lang.reflect.Field f : c.getDeclaredFields()) {
+                    if (!java.lang.reflect.Modifier.isStatic(f.getModifiers()) && f.getType().isInstance(linearSampler)) {
+                        f.setAccessible(true);
+                        samplerField = f;
+                        break;
+                    }
+                }
+            }
+            if (samplerField == null) throw new NoSuchFieldException("texture sampler");
+        }
+        if (samplerField.get(texture) != linearSampler) samplerField.set(texture, linearSampler);
+        return true;
     }
 
     public static void end() {

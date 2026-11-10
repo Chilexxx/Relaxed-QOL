@@ -16,12 +16,14 @@ public final class CleanStyle {
     public static final int PANEL = 0x8C1C1D20;
     public static final int HEADER = 0x99121315;
     public static final int SETTINGS = 0x59101113;
+    /** Windows (Notepad, prompts, pickers...) are much more solid, so their text stays easy to read. */
+    public static final int WINDOW = 0xE01C1D20;
     public static final int BACKGROUND = 0x40000000;
     /** Thin grey outlines around panels, buttons and boxes. */
     public static final int BORDER = 0x4DFFFFFF;
     /** Switches: a green block when on, a red one when off; sliders: a thin dark line with a blue knob. */
-    public static final int SWITCH_ON = 0xFF2FAE5B;
-    public static final int SWITCH_OFF = 0xFFC8304A;
+    public static final int SWITCH_ON = 0xFF34B565;
+    public static final int SWITCH_OFF = 0xFFC9424F;
     public static final int KNOB = 0xFF4A8FE7;
     /** No colours: the accent is a soft white, switches go light grey when on. */
     public static final int ACCENT = 0xFFE6E6E6;

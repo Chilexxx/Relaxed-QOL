@@ -112,8 +112,9 @@ public final class Theme {
             PILL = 0x1FFFFFFF;
             TEXT = 0xFFF5F5F7;
             TEXT_SECONDARY = 0xFFC8CAD0;
-            TEXT_DIM = 0xFF9A9DA5;
-            TEXT_FAINT = 0xFF62656D;
+            // Brighter greys than the normal theme: the panels are see-through, the text must stay readable
+            TEXT_DIM = 0xFFB4B7BE;
+            TEXT_FAINT = 0xFF8C8F97;
             R_CONTROL = 2;
             R_ROW = 2;
             R_SURFACE = 3;
