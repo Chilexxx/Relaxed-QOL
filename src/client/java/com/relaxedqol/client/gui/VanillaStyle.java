@@ -41,7 +41,8 @@ public final class VanillaStyle {
         Identifier sprite = !enabled ? BUTTON_OFF : hover || active ? BUTTON_HOVER : BUTTON;
         g.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, w, h, 0xFFFFFFFF);
         if (label == null || label.isEmpty()) return;
-        int color = !enabled ? TEXT_GRAY : active ? YELLOW : hover ? 0xFFFFFFA0 : TEXT;
+        // White text like Minecraft's buttons ("on" shows as the highlighted button, not as yellow text)
+        int color = !enabled ? TEXT_GRAY : TEXT;
         g.centeredText(font, label, x + w / 2, y + (h - 8) / 2 + (h % 2 == 0 ? 0 : 1), color);
     }
 

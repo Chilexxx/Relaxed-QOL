@@ -30,6 +30,11 @@ public final class LoverFx {
 
     private LoverFx() {}
 
+    /** Clean Style: LoverFella Mode's navy HUD pieces become see-through glass like the rest; otherwise as given. */
+    static float glass(float alpha) {
+        return CleanStyle.on() ? Math.min(alpha, 0.55f) : alpha;
+    }
+
     private static LoverFellaMode module() {
         if (module == null && RelaxedQolClient.moduleManager != null) {
             module = RelaxedQolClient.moduleManager.getModule(LoverFellaMode.class);
@@ -120,7 +125,7 @@ public final class LoverFx {
         int w = 8 + iconW + font.width(lover) + font.width(craft) + font.width(heart) + 8;
         int h = 18;
         Render2D.shadow(g, 4, y, w, h, 8);
-        Render2D.roundRect(g, 4, y, w, h, 8, Theme.withAlpha(NAVY, 0.86f));
+        Render2D.roundRect(g, 4, y, w, h, 8, Theme.withAlpha(NAVY, glass(0.86f)));
         Render2D.roundOutline(g, 4, y, w, h, 8, Theme.withAlpha(accent(0), 0.55f));
         int x = 10;
         if (logo) {
@@ -168,7 +173,7 @@ public final class LoverFx {
             if (!SkinFaces.draw(g, peeker, faceX, faceY, 10, 0xFFFFFFFF)) g.fill(faceX, faceY, faceX + 10, faceY + 10, 0xFF2A3350);
         }
         Render2D.shadow(g, x, y, w, h, 8);
-        Render2D.roundRect(g, x, y, w, h, 8, Theme.withAlpha(NAVY, 0.88f));
+        Render2D.roundRect(g, x, y, w, h, 8, Theme.withAlpha(NAVY, glass(0.88f)));
         Render2D.roundOutline(g, x, y, w, h, 8, Theme.withAlpha(accent(1), 0.5f));
         int ly = y + 5;
         for (int i = 0; i < lines.size(); i++) {
@@ -388,7 +393,7 @@ public final class LoverFx {
         int h = rows.isEmpty() ? headerH : headerH + 2 + rows.size() * rowH + 4;
         boolean any = online > 0;
         Render2D.shadow(g, x, y, w, h, 8);
-        Render2D.roundRect(g, x, y, w, h, 8, Theme.withAlpha(NAVY, 0.9f));
+        Render2D.roundRect(g, x, y, w, h, 8, Theme.withAlpha(NAVY, glass(0.9f)));
         g.fillGradient(x + 1, y + 1, x + w - 1, y + headerH, 0x14FFFFFF, 0x00FFFFFF);
         Render2D.roundOutline(g, x, y, w, h, 8, any ? Theme.withAlpha(CYAN, 0.55f) : 0x26FFFFFF);
         // Header: a heart that beats while someone is online, the title, the count in a red / cyan pill
@@ -740,7 +745,7 @@ public final class LoverFx {
 
             // Name tag, under its own head
             int ly = vh - 13 - lift;
-            Render2D.roundRect(g, cx - lw / 2, ly, lw, 11, 5, Theme.withAlpha(NAVY, 0.92f));
+            Render2D.roundRect(g, cx - lw / 2, ly, lw, 11, 5, Theme.withAlpha(NAVY, glass(0.92f)));
             Render2D.roundOutline(g, cx - lw / 2, ly, lw, 11, 5, Theme.withAlpha(i % 2 == 0 ? RED : CYAN, 0.7f));
             g.text(font, name, cx - lw / 2 + 4, ly + 2, near ? 0xFFFFFFFF : 0xFFD8E2F5, false);
         }

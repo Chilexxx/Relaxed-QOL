@@ -149,7 +149,8 @@ public class Notes extends Module implements HudCard {
         int marker = lover ? com.relaxedqol.client.gui.LoverFx.CYAN : accent;
         if (lover) {
             Render2D.shadow(g, 0, 0, w, h, 12);
-            Render2D.roundRect(g, 0, 0, w, h, 12, Theme.withAlpha(0xFF141A2E, a));
+            Render2D.roundRect(g, 0, 0, w, h, 12, Theme.withAlpha(0xFF141A2E,
+                com.relaxedqol.client.gui.CleanStyle.on() ? Math.min(a, 0.55f) : a));
             Render2D.roundOutline(g, 0, 0, w, h, 12, 0x24FFFFFF);
             Render2D.icon(g, "heart_soft", pad, (headerH - 9) / 2, 9, com.relaxedqol.client.gui.LoverFx.RED);
             window.crispText(g, font, net.minecraft.network.chat.Component.literal("Notes").withStyle(net.minecraft.ChatFormatting.BOLD),
