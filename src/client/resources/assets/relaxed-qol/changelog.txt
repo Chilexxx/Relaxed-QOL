@@ -1,0 +1,12 @@
+# 1.1 | 10 Nov 2026
++ Setting Profiles: keep different setups (PvP, Building, Recording...) and switch in one click - or link a server so joining it switches for you
++ Share & Backup: copy all your settings as one code to send to friends, or use theirs - your old settings are always kept to undo
++ Custom Hotbar: the hotbar, hearts and hunger drawn in your style, with a smooth sliding selection
++ Style Editor: tune roundness, see-through-ness, borders, shadows, glow and the glass shine with a live preview
++ Menu Button Look: pick rounded, glass or Minecraft buttons for the game's menus, whatever style you use
++ What's New: this window - it shows once after every update
+* Pop-ups: follow the style you picked - square in Vanilla Style, frosted glass in Clean Style, calmer in the normal look
+* Crosshair: live preview in its settings
+* Chat: one time stamp per message instead of one per line
+- Account button: long names no longer overlap
+- Panels layout: modules you opened stay open when you come back

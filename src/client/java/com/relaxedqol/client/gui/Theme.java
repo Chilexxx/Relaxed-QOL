@@ -58,6 +58,9 @@ public final class Theme {
     public static float SHADOW = 1f;
     /** Animation speed (1 = normal, 0 = no animations: everything changes at once). */
     public static float ANIM = 1f;
+    /** Style Editor: glow around things that are "on" (0..2) and the shine on glass panels (0..2). */
+    public static float GLOW = 1f;
+    public static float SHEEN = 1f;
     /** The surface colour the theme is built from (opaque). */
     public static int SURFACE = 0xFF18191C;
 
@@ -73,6 +76,8 @@ public final class Theme {
         refreshedAt = now;
         ClickGUI gui = gui();
         if (gui == null) return;
+        GLOW = gui.themeGlow().getValue() / 100f;
+        SHEEN = gui.themeSheen().getValue() / 100f;
         if (VanillaStyle.on() || CleanStyle.on()) {
             int surface = 0xFF000000 | com.relaxedqol.client.util.Colors.of(gui.themeSurface().getValue());
             int text = 0xFF000000 | com.relaxedqol.client.util.Colors.of(gui.themeText().getValue());
@@ -154,6 +159,12 @@ public final class Theme {
         } catch (RuntimeException e) {
             // keep the last good values
         }
+    }
+
+    /** Works the tokens out again right now (the Style Editor's live preview). */
+    public static void refreshNow() {
+        refreshedAt = 0;
+        refresh();
     }
 
     /** Lines are light on a dark surface and dark on a light one. */

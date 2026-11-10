@@ -28,6 +28,8 @@ public class CommandManager {
         commands.add(new BindCommand());
         commands.add(new SetCommand());
         commands.add(new ConfigCommand());
+        commands.add(new com.relaxedqol.client.command.commands.ProfileCommand());
+        commands.add(new com.relaxedqol.client.command.commands.WhatsNewCommand());
         commands.add(new com.relaxedqol.client.command.commands.AlertCommand());
         commands.add(new ScaleCommand());
         commands.add(new com.relaxedqol.client.command.commands.NotesCommand());

@@ -64,6 +64,7 @@ public class ModuleManager {
         add(new com.relaxedqol.client.module.modules.misc.Notepad());
         add(new com.relaxedqol.client.module.modules.render.ClearView());
         add(new com.relaxedqol.client.module.modules.render.Crosshair());
+        add(new com.relaxedqol.client.module.modules.render.Hotbar());
         add(new com.relaxedqol.client.module.modules.lovercraft.LoverFellaMode());
         add(new com.relaxedqol.client.module.modules.lovercraft.LiveMap());
 

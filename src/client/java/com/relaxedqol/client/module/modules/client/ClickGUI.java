@@ -120,6 +120,10 @@ public class ClickGUI extends Module {
     private final Setting<Integer> themeRound = addSetting(new Setting<>("Theme Roundness %", 100, 0, 200, 10).hide());
     private final Setting<Integer> themeShadow = addSetting(new Setting<>("Theme Shadow %", 100, 0, 200, 10).hide());
     private final Setting<Integer> themeAnim = addSetting(new Setting<>("Theme Animation %", 100, 0, 300, 10).hide());
+    /** Style Editor: the soft glow around switches, sliders and the hotbar selection that are "on". */
+    private final Setting<Integer> themeGlow = addSetting(new Setting<>("Theme Glow %", 100, 0, 200, 10).hide());
+    /** Style Editor: the light shine on the top of glass panels (Clean Style). */
+    private final Setting<Integer> themeSheen = addSetting(new Setting<>("Theme Shine %", 100, 0, 200, 10).hide());
     private final com.relaxedqol.client.setting.ActionSetting editHud = addSetting(
         new com.relaxedqol.client.setting.ActionSetting("Edit HUD & Theme", com.relaxedqol.client.gui.HudEditorScreen::open),
         "Move every HUD element, style each one (colours, background, border, shadow...) and change the client's theme,"
@@ -127,6 +131,16 @@ public class ClickGUI extends Module {
     private final com.relaxedqol.client.setting.ActionSetting accounts = addSetting(
         new com.relaxedqol.client.setting.ActionSetting("Accounts", () -> com.relaxedqol.client.gui.AccountsScreen.open(mc.gui.screen())),
         "Switch Minecraft accounts without restarting, and keep the session renewed so you never get \"Invalid session\"");
+    private final com.relaxedqol.client.setting.ActionSetting styleEditor = addSetting(
+        new com.relaxedqol.client.setting.ActionSetting("Style Editor", () -> com.relaxedqol.client.gui.StyleEditorScreen.open(mc.gui.screen())),
+        "Pick the style and tune it with a live preview: roundness, see-through-ness, borders, shadows, glow and the glass shine");
+    private final com.relaxedqol.client.setting.ActionSetting profiles = addSetting(
+        new com.relaxedqol.client.setting.ActionSetting("Profiles & Sharing", () -> com.relaxedqol.client.gui.ProfilesScreen.open(mc.gui.screen())),
+        "Keep different setups (PvP, Building...) and switch in a click, link servers to them, share your settings as a"
+            + " code or use someone else's (yours are always kept to undo). Also: .profile <name>");
+    private final com.relaxedqol.client.setting.ActionSetting whatsNew = addSetting(
+        new com.relaxedqol.client.setting.ActionSetting("What's New", () -> com.relaxedqol.client.gui.ChangelogScreen.open(mc.gui.screen())),
+        "Everything that changed in the latest updates");
 
     private com.relaxedqol.client.setting.ColorSetting themeColor(String name, String def) {
         com.relaxedqol.client.setting.ColorSetting c = new com.relaxedqol.client.setting.ColorSetting(name, def, false, false);
@@ -163,6 +177,26 @@ public class ClickGUI extends Module {
         return themeAnim;
     }
 
+    public Setting<Integer> themeGlow() {
+        return themeGlow;
+    }
+
+    public Setting<Integer> themeSheen() {
+        return themeSheen;
+    }
+
+    public Setting<Boolean> vanillaStyleSetting() {
+        return vanillaStyle;
+    }
+
+    public Setting<Boolean> cleanStyleSetting() {
+        return cleanStyle;
+    }
+
+    public Setting<Integer> glassTintSetting() {
+        return glassTint;
+    }
+
     public Setting<Integer> opacitySetting() {
         return opacity;
     }
@@ -175,6 +209,8 @@ public class ClickGUI extends Module {
         themeRound.reset();
         themeShadow.reset();
         themeAnim.reset();
+        themeGlow.reset();
+        themeSheen.reset();
         opacity.reset();
         accent.reset();
     }

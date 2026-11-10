@@ -93,6 +93,29 @@ public final class HudMovers {
         } catch (RuntimeException e) {
             com.relaxedqol.RelaxedQolMod.LOGGER.warn("LoverFella Mode: could not wrap the scoreboard", e);
         }
+        // Custom Hotbar: the hotbar, hearts and hunger in the client's style (Minecraft's own when the module is off)
+        try {
+            HudElementRegistry.replaceElement(VanillaHudElements.HOTBAR, old -> (g, delta) -> {
+                com.relaxedqol.client.module.modules.render.Hotbar bar =
+                    RelaxedQolClient.enabled(com.relaxedqol.client.module.modules.render.Hotbar.class);
+                if (bar != null && bar.drawsHotbar()) bar.renderHotbar(g);
+                else old.extractRenderState(g, delta);
+            });
+            HudElementRegistry.replaceElement(VanillaHudElements.HEALTH_BAR, old -> (g, delta) -> {
+                com.relaxedqol.client.module.modules.render.Hotbar bar =
+                    RelaxedQolClient.enabled(com.relaxedqol.client.module.modules.render.Hotbar.class);
+                if (bar != null && bar.drawsBars()) bar.renderHealth(g);
+                else old.extractRenderState(g, delta);
+            });
+            HudElementRegistry.replaceElement(VanillaHudElements.FOOD_BAR, old -> (g, delta) -> {
+                com.relaxedqol.client.module.modules.render.Hotbar bar =
+                    RelaxedQolClient.enabled(com.relaxedqol.client.module.modules.render.Hotbar.class);
+                if (bar != null && bar.drawsBars()) bar.renderFood(g);
+                else old.extractRenderState(g, delta);
+            });
+        } catch (RuntimeException e) {
+            com.relaxedqol.RelaxedQolMod.LOGGER.warn("Hotbar: could not wrap the hotbar", e);
+        }
         // ArmorStatus: the armor icons above the hearts with an enchant shimmer / wear colour
         try {
             HudElementRegistry.replaceElement(VanillaHudElements.ARMOR_BAR, old -> (g, delta) -> {
