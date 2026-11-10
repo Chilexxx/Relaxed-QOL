@@ -42,7 +42,9 @@ public final class OverlayRenderer {
                 HudStyle.begin(radar.cardStyle());
                 String prev = LoverFx.beginScope("Radar");
                 try {
-                    radar.render(g, mc.font, vw, vh, partialTicks);
+                    // Each card is cached on its own (Smart HUD): one card with items in it no longer makes every
+                    // other card draw again every frame
+                    com.relaxedqol.client.util.HudCache.layer("card:Radar", g, false, () -> radar.render(g, mc.font, vw, vh, partialTicks));
                 } finally {
                     LoverFx.endScope(prev);
                     HudStyle.end();
@@ -57,7 +59,7 @@ public final class OverlayRenderer {
                     HudStyle.begin(card.cardStyle());
                     String prev = LoverFx.beginScope(m.getName());
                     try {
-                        card.render(g, mc.font, vw, vh);
+                        com.relaxedqol.client.util.HudCache.layer("card:" + m.getName(), g, false, () -> card.render(g, mc.font, vw, vh));
                     } finally {
                         LoverFx.endScope(prev);
                         HudStyle.end();

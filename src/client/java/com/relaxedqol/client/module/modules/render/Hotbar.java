@@ -1,6 +1,7 @@
 package com.relaxedqol.client.module.modules.render;
 
 import com.relaxedqol.client.gui.CleanStyle;
+import com.relaxedqol.client.gui.GlassIcons;
 import com.relaxedqol.client.gui.Render2D;
 import com.relaxedqol.client.gui.Theme;
 import com.relaxedqol.client.gui.VanillaStyle;
@@ -243,6 +244,37 @@ public class Hotbar extends Module {
         }
     }
 
+    /** The smooth glass icon, when it could be made. */
+    private static boolean smooth(GuiGraphicsExtractor g, GlassIcons.Icon icon, int x, int y) {
+        return GlassIcons.available() && GlassIcons.draw(g, icon, x, y);
+    }
+
+    private static GlassIcons.Icon heartIcon(Player p, float fill, boolean flash) {
+        if (fill <= 0f) return GlassIcons.Icon.HEART_EMPTY;
+        boolean full = fill >= 1f;
+        if (flash) return full ? GlassIcons.Icon.FLASH_FULL : GlassIcons.Icon.FLASH_HALF;
+        if (p.hasEffect(MobEffects.WITHER)) return full ? GlassIcons.Icon.WITHER_FULL : GlassIcons.Icon.WITHER_HALF;
+        if (p.hasEffect(MobEffects.POISON)) return full ? GlassIcons.Icon.POISON_FULL : GlassIcons.Icon.POISON_HALF;
+        if (p.isFullyFrozen()) return full ? GlassIcons.Icon.FROZEN_FULL : GlassIcons.Icon.FROZEN_HALF;
+        return full ? GlassIcons.Icon.HEART_FULL : GlassIcons.Icon.HEART_HALF;
+    }
+
+    /** Armor in Minecraft's place (above the hearts), with the client's icons. Nothing when you wear none. */
+    public void renderArmor(GuiGraphicsExtractor g) {
+        Player p = mc.player;
+        if (p == null) return;
+        int armor = p.getArmorValue();
+        if (armor <= 0) return;
+        int left = g.guiWidth() / 2 - 91;
+        int y = g.guiHeight() - net.fabricmc.fabric.api.client.rendering.v1.hud.HudStatusBarHeightRegistry.getHeight(
+            net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.ARMOR_BAR);
+        for (int i = 0; i < 10; i++) {
+            int v = armor - i * 2;
+            GlassIcons.Icon ic = v >= 2 ? GlassIcons.Icon.ARMOR_FULL : v == 1 ? GlassIcons.Icon.ARMOR_HALF : GlassIcons.Icon.ARMOR_EMPTY;
+            if (!smooth(g, ic, left + i * 8, y)) return;
+        }
+    }
+
     public void renderHealth(GuiGraphicsExtractor g) {
         Player p = mc.player;
         if (p == null) return;
@@ -278,10 +310,14 @@ public class Hotbar extends Module {
                 float fill = v >= 2 ? 1f : v >= 1 ? 0.5f : 0f;
                 float lv = lostHealth - i * 2;
                 boolean flash = fill < 1f && lv > Math.max(0f, v);
-                icon(g, HEART_MAP, x, y, flash ? (lv >= 2 ? 1f : 0.5f) : fill, false, light, dark, flash);
+                float shown = flash ? (lv >= 2 ? 1f : 0.5f) : fill;
+                if (!smooth(g, heartIcon(p, shown, flash), x, y)) {
+                    icon(g, HEART_MAP, x, y, shown, false, light, dark, flash);
+                }
             } else {
                 float v = abs - (i - hearts) * 2;
-                icon(g, HEART_MAP, x, y, v >= 2 ? 1f : 0.5f, false, 0xFFFFE590, 0xFFD69A12, false);
+                GlassIcons.Icon gold = v >= 2 ? GlassIcons.Icon.GOLD_FULL : GlassIcons.Icon.GOLD_HALF;
+                if (!smooth(g, gold, x, y)) icon(g, HEART_MAP, x, y, v >= 2 ? 1f : 0.5f, false, 0xFFFFE590, 0xFFD69A12, false);
             }
         }
     }
@@ -306,7 +342,10 @@ public class Hotbar extends Module {
             if (sat <= 0f && tick % (food * 3L + 1) == 0) y += (int) ((tick * 7 + i * 13) % 3) - 1;
             int v = food - i * 2;
             float fill = v >= 2 ? 1f : v == 1 ? 0.5f : 0f;
-            icon(g, FOOD_MAP, x, y, fill, true, light, dark, false);
+            GlassIcons.Icon ic = fill <= 0f ? GlassIcons.Icon.FOOD_EMPTY
+                : hungry ? (fill >= 1f ? GlassIcons.Icon.HUNGER_FULL : GlassIcons.Icon.HUNGER_HALF)
+                : (fill >= 1f ? GlassIcons.Icon.FOOD_FULL : GlassIcons.Icon.FOOD_HALF);
+            if (!smooth(g, ic, x, y)) icon(g, FOOD_MAP, x, y, fill, true, light, dark, false);
         }
     }
 }

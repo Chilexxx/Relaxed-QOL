@@ -152,17 +152,20 @@ public class RelaxedQolClient implements ClientModInitializer {
                 // Smart HUD: the in-game cards / alerts through the cache (worked out at most 60 times a second)
                 long t0 = com.relaxedqol.client.util.Perf.start();
                 com.relaxedqol.client.util.HudCache.layer("overlays", graphics, true,
-                    () -> drawOverlays(graphics, null, deltaTracker.getGameTimeDeltaPartialTick(true)));
+                    () -> drawOverlays(graphics, null, deltaTracker.getGameTimeDeltaPartialTick(true), false));
+                // The cards outside that layer: each one is cached on its own
+                OverlayRenderer.renderAll(graphics, deltaTracker.getGameTimeDeltaPartialTick(true));
                 com.relaxedqol.client.util.Perf.end(com.relaxedqol.client.util.Perf.CARDS, t0);
                 return;
             }
-            drawOverlays(graphics, open, deltaTracker.getGameTimeDeltaPartialTick(true));
+            drawOverlays(graphics, open, deltaTracker.getGameTimeDeltaPartialTick(true), true);
         });
         installRest();
     }
 
     /** The cards, alerts and pop-ups layer (radar, PlayerAlert, durability, toasts, REC dot, HUD cards). */
-    private static void drawOverlays(net.minecraft.client.gui.GuiGraphicsExtractor graphics, net.minecraft.client.gui.screens.Screen open, float partialTicks) {
+    private static void drawOverlays(net.minecraft.client.gui.GuiGraphicsExtractor graphics, net.minecraft.client.gui.screens.Screen open, float partialTicks,
+                                     boolean cards) {
         {
             com.relaxedqol.client.module.modules.misc.PlayerAlert playerAlert =
                 enabled(com.relaxedqol.client.module.modules.misc.PlayerAlert.class);
@@ -182,7 +185,7 @@ public class RelaxedQolClient implements ClientModInitializer {
                 com.relaxedqol.client.gui.LoverFx.endScope(prevScope);
             }
             if (open instanceof ClickGuiScreen || (open != null && ScreenPanelOverlay.isAttachedTo(open))) return;
-            OverlayRenderer.renderAll(graphics, partialTicks);
+            if (cards) OverlayRenderer.renderAll(graphics, partialTicks);
         }
     }
 

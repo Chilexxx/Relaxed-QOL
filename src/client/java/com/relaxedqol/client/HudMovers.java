@@ -119,6 +119,13 @@ public final class HudMovers {
         // ArmorStatus: the armor icons above the hearts with an enchant shimmer / wear colour
         try {
             HudElementRegistry.replaceElement(VanillaHudElements.ARMOR_BAR, old -> (g, delta) -> {
+                // Custom Hotbar's armor icons (the same look as its hearts)
+                com.relaxedqol.client.module.modules.render.Hotbar hotbar =
+                    RelaxedQolClient.enabled(com.relaxedqol.client.module.modules.render.Hotbar.class);
+                if (hotbar != null && hotbar.drawsBars() && com.relaxedqol.client.gui.GlassIcons.available()) {
+                    hotbar.renderArmor(g);
+                    return;
+                }
                 com.relaxedqol.client.module.modules.render.ArmorStatus status =
                     RelaxedQolClient.enabled(com.relaxedqol.client.module.modules.render.ArmorStatus.class);
                 if (status == null || !status.drawArmorBar(g)) old.extractRenderState(g, delta);
