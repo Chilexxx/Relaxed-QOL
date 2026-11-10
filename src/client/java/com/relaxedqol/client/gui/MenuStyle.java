@@ -52,8 +52,10 @@ public final class MenuStyle {
     public static Button accountButton(Screen screen) {
         Minecraft mc = Minecraft.getInstance();
         String name = mc.getUser() == null ? "?" : mc.getUser().getName();
-        String label = "Account: " + name;
-        int w = Math.max(90, Math.min(140, mc.font.width(label) + 20));
+        // Always wide enough for the whole label (a too-narrow button makes Minecraft scroll the text, which looks
+        // like it overlaps); only a really long name is shortened with "…"
+        String label = Theme.ellipsize("Account: " + name, 200, mc.font::width);
+        int w = Math.max(90, mc.font.width(label) + 16);
         return Button.builder(Component.literal(label), b -> AccountsScreen.open(screen)).bounds(118, 6, w, 20).build();
     }
 
