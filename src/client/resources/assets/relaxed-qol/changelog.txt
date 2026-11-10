@@ -1,3 +1,12 @@
+# 1.2 | 10 Nov 2026
++ Liquid Glass: a new look for the hotbar's hearts, hunger and armor - clear glass that only takes a tint of the colour (Hotbar > Icon Look)
+* Hotbar: hearts, hunger and armor are back in Minecraft's layout, with smooth glass icons that stay sharp at any GUI scale
+* Panels layout: click a category's title to fold it in (drag it to move it, like before)
+* Radar: clicking it opens a window in the middle of the screen instead of the whole screen
+* More FPS: every HUD card is kept and repeated on its own, so one card with items no longer makes all of them draw every frame
+* What's New: shows once after every update, as soon as the title screen is up
+- Profiles: any profile can be deleted (also the one in use), new profiles start from the default settings, and servers linked to a profile switch every time you join
+
 # 1.1 | 10 Nov 2026
 + Setting Profiles: keep different setups (PvP, Building, Recording...) and switch in one click - or link a server so joining it switches for you
 + Share & Backup: copy all your settings as one code to send to friends, or use theirs - your old settings are always kept to undo

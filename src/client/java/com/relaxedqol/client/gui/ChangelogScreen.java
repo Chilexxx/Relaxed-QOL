@@ -30,6 +30,8 @@ public class ChangelogScreen extends WindowScreen {
     private record Release(String version, String date, List<Entry> entries) {}
 
     private static List<Release> cache;
+    /** A fingerprint of the whole changelog: a new version (new or changed lines) gives a new one. */
+    private static String fingerprint = "";
 
     private final ScrollBar bar = new ScrollBar();
     private final long shownAt = System.currentTimeMillis();
@@ -54,7 +56,9 @@ public class ChangelogScreen extends WindowScreen {
         try (InputStream in = ChangelogScreen.class.getResourceAsStream(path)) {
             if (in != null) {
                 Release cur = null;
-                for (String raw : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\\R")) {
+                String all = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                fingerprint = Integer.toHexString(all.strip().replace("\r", "").hashCode());
+                for (String raw : all.split("\\R")) {
                     String line = raw.strip();
                     if (line.isEmpty()) continue;
                     if (line.startsWith("#")) {
@@ -96,7 +100,7 @@ public class ChangelogScreen extends WindowScreen {
                 }
                 return true;
             }
-            return !Files.readString(f, StandardCharsets.UTF_8).trim().equals(r.get(0).version());
+            return !Files.readString(f, StandardCharsets.UTF_8).trim().equals(seenKey());
         } catch (Exception e) {
             return false;
         }
@@ -106,23 +110,40 @@ public class ChangelogScreen extends WindowScreen {
         List<Release> r = releases();
         if (r.isEmpty()) return;
         try {
-            Files.writeString(seenFile(), r.get(0).version(), StandardCharsets.UTF_8);
+            Files.writeString(seenFile(), seenKey(), StandardCharsets.UTF_8);
         } catch (Exception ignored) {
             // shown again next time
         }
     }
 
-    private static boolean checked;
+    /** What is remembered as "seen": the newest version and the changelog's fingerprint. */
+    private static String seenKey() {
+        List<Release> r = releases();
+        return (r.isEmpty() ? "" : r.get(0).version()) + "#" + fingerprint;
+    }
 
-    /** From the title screen: once per game start, the window if there is something new. */
+    private static boolean shownThisRun;
+    private static boolean pending;
+
+    /** From the title screen: asks for the window if there is something new (opened once the game has loaded). */
     public static void maybeShow(Screen titleScreen) {
-        if (checked) return;
-        checked = true;
-        if (!unseen()) return;
+        if (shownThisRun || pending) return;
+        if (unseen()) pending = true;
+    }
+
+    /**
+     * Every tick: opens the window once the title screen is really up (not while the game is still loading - the
+     * game makes the title screen again when loading ends, which would close it straight away).
+     */
+    public static void tick() {
+        if (!pending) return;
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.execute(() -> {
-            if (mc.gui.screen() == titleScreen) open(titleScreen);
-        });
+        if (mc.getOverlay() != null) return;
+        Screen now = mc.gui.screen();
+        if (!(now instanceof net.minecraft.client.gui.screens.TitleScreen)) return;
+        pending = false;
+        shownThisRun = true;
+        open(now);
     }
 
     /** The client's name as it is installed ("Relaxed QOL", "Chillaxed Client"...). */

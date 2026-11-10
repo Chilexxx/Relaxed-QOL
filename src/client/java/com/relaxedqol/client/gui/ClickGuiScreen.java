@@ -1845,6 +1845,9 @@ public class ClickGuiScreen extends Screen {
         if (header != null) {
             if (button == 0) {
                 dragging = header.category;
+                // A click without moving folds / unfolds the panel (dragging still moves it)
+                headerPressX = mx;
+                headerPressY = my;
                 POSITIONS.put(header.category, new int[]{header.x, header.y});
                 dragOffsetX = (int) Math.round(mx) - header.x;
                 dragOffsetY = (int) Math.round(my) - header.y;
@@ -1996,8 +1999,19 @@ public class ClickGuiScreen extends Screen {
         }
     }
 
+    /** Where a panel's title bar was pressed (a click there without moving folds the panel). */
+    private double headerPressX;
+    private double headerPressY;
+
     private boolean mouseReleased$smooth(MouseButtonEvent event) {
         ScreenPanelOverlay.mouseReleased();
+        if (dragging != null && event.button() == 0) {
+            double rx = event.x() / scale;
+            double ry = event.y() / scale;
+            if (Math.abs(rx - headerPressX) < 3 && Math.abs(ry - headerPressY) < 3) {
+                if (!COLLAPSED.remove(dragging)) COLLAPSED.add(dragging);
+            }
+        }
         appDragging = false;
         dragging = null;
         resizing = null;

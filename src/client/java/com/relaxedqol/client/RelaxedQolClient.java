@@ -218,7 +218,10 @@ public class RelaxedQolClient implements ClientModInitializer {
         });
         // Setting profiles: a server linked to a profile switches to it when you join
         net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client ->
-            com.relaxedqol.client.util.Profiles.tick());
+            {
+                com.relaxedqol.client.util.Profiles.tick();
+                com.relaxedqol.client.gui.ChangelogScreen.tick();
+            });
         ClientPlayConnectionEvents.DISCONNECT.register((listener, client) -> {
             // Nothing from this server may show on the next one
             com.relaxedqol.client.module.modules.misc.PlayerAlert alert =
