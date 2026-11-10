@@ -203,6 +203,10 @@ public class ClickGuiScreen extends Screen {
     public ClickGuiScreen(Screen parent) {
         super(Component.literal("Relaxed QOL"));
         this.parent = parent;
+        // A freshly opened menu starts with every module folded (Panels layout) - modules opened last time stay
+        // open only while the menu is open (windows opened from it come back to this same menu)
+        EXPANDED.clear();
+        KEYS.clear();
     }
 
     /**
@@ -220,8 +224,9 @@ public class ClickGuiScreen extends Screen {
 
     /** Opens the menu with the Settings panel shown and expanded. */
     public static Screen settingsScreen(Screen parent) {
+        ClickGuiScreen screen = new ClickGuiScreen(parent);
         openSettings();
-        return new ClickGuiScreen(parent);
+        return screen;
     }
 
     /** Shows the Settings panel in the menu that is already open. */
