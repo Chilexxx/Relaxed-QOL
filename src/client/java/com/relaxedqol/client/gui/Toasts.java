@@ -61,15 +61,45 @@ public final class Toasts {
             int x = vw / 2 - w / 2;
             int yy = Math.round(y - (1f - ease) * 14f);
 
+            float left = 1f - Math.min(1f, age / (float) t.duration());
+            int textAlpha = Math.round(alpha * 255) << 24;
+            // Vanilla Style: a square dark box like Minecraft's own pop-ups, white title, grey text, pixel shadow
+            if (VanillaStyle.on()) {
+                g.fill(x, yy, x + w, yy + h, Theme.fade(0xF0101010, alpha));
+                g.fill(x, yy, x + w, yy + 1, Theme.fade(VanillaStyle.EDGE_LIGHT, alpha));
+                g.fill(x, yy + h - 1, x + w, yy + h, Theme.fade(VanillaStyle.EDGE_DARK, alpha));
+                g.fill(x, yy, x + 1, yy + h, Theme.fade(VanillaStyle.EDGE_LIGHT, alpha));
+                g.fill(x + w - 1, yy, x + w, yy + h, Theme.fade(VanillaStyle.EDGE_DARK, alpha));
+                g.fill(x + 5, yy + 5, x + 7, yy + h - 5, Theme.fade(t.color(), alpha));
+                int barW = Math.round((w - 4) * left);
+                if (barW > 0) g.fill(x + 2, yy + h - 2, x + 2 + barW, yy + h - 1, Theme.fade(0xFF808080, alpha));
+                g.text(font, Component.literal(t.title()), x + 12, yy + 6, (VanillaStyle.TEXT & 0xFFFFFF) | textAlpha, true);
+                if (!t.message().isEmpty()) g.text(font, t.message(), x + 12, yy + 17, (VanillaStyle.TEXT_GRAY & 0xFFFFFF) | textAlpha, true);
+                y += h + 5;
+                continue;
+            }
+            // Clean Style: see-through glass in the theme's colours, a thin light edge, white text; the pop-up's
+            // colour only as a small dot and the time line
+            if (CleanStyle.on()) {
+                int r = Theme.R_SURFACE;
+                Render2D.shadow(g, x, yy, w, h, r);
+                Render2D.roundRect(g, x, yy, w, h, r, Theme.fade(Theme.withAlpha(Theme.PANEL, 0.72f), alpha));
+                Render2D.roundOutline(g, x, yy, w, h, r, Theme.fade(Theme.BORDER, alpha));
+                Render2D.smoothCircle(g, x + 8f, yy + 10f, 2.5f, Theme.fade(t.color(), alpha), 1f);
+                int barW = Math.round((w - 20) * left);
+                if (barW > 0) Render2D.roundRect(g, x + 10, yy + h - 2, barW, 1, 0, Theme.fade(Theme.withAlpha(t.color(), 0.6f), alpha));
+                g.text(font, title, x + 15, yy + 6, (Theme.TEXT & 0xFFFFFF) | textAlpha, false);
+                if (!t.message().isEmpty()) g.text(font, t.message(), x + 15, yy + 17, (Theme.TEXT_DIM & 0xFFFFFF) | textAlpha, false);
+                y += h + 5;
+                continue;
+            }
             Render2D.shadow(g, x, yy, w, h, 8);
             Render2D.roundRect(g, x, yy, w, h, 8, Theme.fade(0xEE101018, alpha));
             Render2D.roundOutline(g, x, yy, w, h, 8, Theme.fade(Theme.withAlpha(t.color(), 0.55f), alpha));
             Render2D.roundRect(g, x + 6, yy + 6, 3, h - 12, 1, Theme.fade(t.color(), alpha));
             // Progress line at the bottom: how long it stays
-            float left = 1f - Math.min(1f, age / (float) t.duration());
             int barW = Math.round((w - 20) * left);
             if (barW > 0) Render2D.roundRect(g, x + 10, yy + h - 3, barW, 1, 0, Theme.fade(Theme.withAlpha(t.color(), 0.5f), alpha));
-            int textAlpha = Math.round(alpha * 255) << 24;
             g.text(font, title, x + 15, yy + 6, (t.color() & 0xFFFFFF) | textAlpha, false);
             if (!t.message().isEmpty()) g.text(font, t.message(), x + 15, yy + 17, (Theme.TEXT & 0xFFFFFF) | textAlpha, false);
             y += h + 5;
