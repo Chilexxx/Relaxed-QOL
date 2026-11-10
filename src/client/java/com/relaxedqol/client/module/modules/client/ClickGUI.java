@@ -58,13 +58,18 @@ public class ClickGUI extends Module {
         "For slower computers: the HUD, cards and LocatorBar are worked out 30 times a second instead of 60, the minimap"
             + " builds terrain in smaller slices, and soft glows are left out. Looks the same, costs less FPS");
     /** Smooth text (Inter) in the client's windows and cards. */
-    private final Setting<Boolean> smoothFont = addSetting(new Setting<>("Smooth Font", false),
+    private final Setting<Boolean> smoothFont = addSetting(new Setting<>("Smooth Font", false)
+        .lockedWhen(() -> this.vanillaStyle.getValue() ? "Vanilla Style always uses Minecraft's pixel font, so this switch does"
+            + " nothing while it is on" : this.cleanStyle.getValue() ? "Clean Style always uses the smooth font, so this switch"
+            + " does nothing while it is on" : null),
         "Smooth, anti-aliased text (no pixel font) in the client's windows and the Notes card");
     /**
      * The client's own look on Minecraft's menus (rounded dark buttons and text fields in the title screen, options,
      * server list, join screens...). Off = Minecraft's normal buttons everywhere.
      */
-    private final Setting<Boolean> customButtons = addSetting(new Setting<>("Custom Menu Buttons", true),
+    private final Setting<Boolean> customButtons = addSetting(new Setting<>("Custom Menu Buttons", true)
+        .lockedWhen(() -> this.vanillaStyle.getValue() ? "Vanilla Style always uses Minecraft's own buttons, so this switch"
+            + " does nothing while it is on" : null),
         "The client's rounded dark buttons and text fields in all Minecraft menus (settings, server list, joining a"
             + " server...). Off = Minecraft's normal buttons and menus again");
     /**

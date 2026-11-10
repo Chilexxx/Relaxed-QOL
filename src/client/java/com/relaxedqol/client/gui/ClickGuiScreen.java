@@ -1013,7 +1013,15 @@ public class ClickGuiScreen extends Screen {
         return true;
     }
 
+    /** A setting row; a locked one (does nothing in the current style...) is drawn faded. */
     private void drawSetting(GuiGraphicsExtractor g, Row row, boolean hover, int accent, int mx) {
+        drawSettingRow(g, row, hover, accent, mx);
+        if (row.setting().lockedReason() != null) {
+            Render2D.roundRect(g, row.x() + 6, row.y(), row.w() - 8, row.h(), Theme.R_CONTROL, Theme.withAlpha(Theme.SURFACE, 0.62f));
+        }
+    }
+
+    private void drawSettingRow(GuiGraphicsExtractor g, Row row, boolean hover, int accent, int mx) {
         Setting<?> setting = row.setting();
         int x = row.x();
         int y = row.y();
@@ -1237,7 +1245,9 @@ public class ClickGuiScreen extends Screen {
     private void drawTooltip(GuiGraphicsExtractor g, int mx, int my) {
         ClickGUI gui = settings();
         if (dragging != null || slider != null || (gui != null && !gui.showTooltips())) return;
-        String text = hovered != null ? hovered.getDescription() : hoveredSetting != null ? hoveredSetting.getHelp() : null;
+        String locked = hovered == null && hoveredSetting != null ? hoveredSetting.lockedReason() : null;
+        String text = hovered != null ? hovered.getDescription() : locked != null ? locked
+            : hoveredSetting != null ? hoveredSetting.getHelp() : null;
         if (text == null || text.isEmpty()) return;
         long shownFor = System.currentTimeMillis() - hoverStart - 350;
         if (shownFor < 0) return;
@@ -1920,6 +1930,7 @@ public class ClickGuiScreen extends Screen {
 
     private void clickSetting(Row row, double mx, double my, int button) {
         Setting<?> setting = row.setting();
+        if (setting.lockedReason() != null) return; // does nothing right now - the hover text says why
         if (setting instanceof com.relaxedqol.client.setting.PreviewSetting) return; // just a picture
         // Clicked number / mode settings take the mouse wheel (see scrollFocus)
         scrollFocus = setting.isNumber() || setting.isMode() ? setting : null;

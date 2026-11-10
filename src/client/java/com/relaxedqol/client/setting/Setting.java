@@ -87,6 +87,28 @@ public class Setting<T> {
         return this;
     }
 
+    /** Why this setting does nothing right now (null = it works), e.g. "Clean Style always uses the smooth font". */
+    private java.util.function.Supplier<String> lockedWhy;
+
+    /**
+     * The setting is locked while {@code why} gives a reason: the menu fades its row, ignores clicks on it and shows
+     * the reason when you point at it (it is still saved and comes back as it was).
+     */
+    public Setting<T> lockedWhen(java.util.function.Supplier<String> why) {
+        lockedWhy = why;
+        return this;
+    }
+
+    /** The reason this setting does nothing right now, or null when it works. */
+    public String lockedReason() {
+        if (lockedWhy == null) return null;
+        try {
+            return lockedWhy.get();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     public boolean isHidden() {
         if (hidden) return true;
         if (showIf == null) return false;
