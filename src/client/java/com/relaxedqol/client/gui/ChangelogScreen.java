@@ -135,10 +135,10 @@ public class ChangelogScreen extends WindowScreen {
      * Every tick: opens the window once the title screen is really up (not while the game is still loading - the
      * game makes the title screen again when loading ends, which would close it straight away).
      */
-    public static void tick() {
+    public static void tickPending() {
         if (!pending) return;
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc.getOverlay() != null) return;
+        if (mc.gui.overlay() != null) return;
         Screen now = mc.gui.screen();
         if (!(now instanceof net.minecraft.client.gui.screens.TitleScreen)) return;
         pending = false;

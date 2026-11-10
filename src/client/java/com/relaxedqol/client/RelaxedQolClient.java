@@ -220,7 +220,7 @@ public class RelaxedQolClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client ->
             {
                 com.relaxedqol.client.util.Profiles.tick();
-                com.relaxedqol.client.gui.ChangelogScreen.tick();
+                com.relaxedqol.client.gui.ChangelogScreen.tickPending();
             });
         ClientPlayConnectionEvents.DISCONNECT.register((listener, client) -> {
             // Nothing from this server may show on the next one
