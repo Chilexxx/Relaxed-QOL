@@ -143,9 +143,11 @@ public final class ClientTag {
         if (mc.level == null || mc.player == null || !seeingTags()) return;
         Vec3 cam = mc.gameRenderer.mainCamera().position();
         for (Player player : mc.level.players()) {
-            if (player == mc.player || player.isInvisibleTo(mc.player) || !usesClient(player)) continue;
+            // Cheapest checks first (a full spawn has many players): distance, then the mark, then the team rules
+            if (player == mc.player) continue;
             Vec3 feet = player.getPosition(partialTicks);
             if (feet.distanceToSqr(cam) > 64 * 64) continue;
+            if (!usesClient(player) || player.isInvisibleTo(mc.player)) continue;
             // Above the name tag (which sits about half a block over the head)
             Vec3 at = feet.add(0, player.getBbHeight() + 0.98, 0);
             int alpha = player.isDiscrete() ? 0x70000000 : 0xFF000000;

@@ -37,6 +37,10 @@ public class NotesScreen extends WindowScreen {
         int bw = 74;
         pill(() -> "+  New Note", contentX() + contentW() - bw, contentY(), bw, 14, () -> TextPrompt.open(this, "New note",
             "e.g. buy 3 stacks of glass, meet at /warp shop 8pm", "", NotesStore::add), 0, () -> true);
+        // Need more room? The Notepad holds long text over many lines and pages
+        int nw = 64;
+        pill(() -> "Notepad", contentX() + contentW() - bw - 4 - nw, contentY(), nw, 14,
+            () -> minecraft.gui.setScreen(new NotepadScreen(this)), 0, () -> false);
     }
 
     private static final int YELLOW = 0xFFFFD60A;

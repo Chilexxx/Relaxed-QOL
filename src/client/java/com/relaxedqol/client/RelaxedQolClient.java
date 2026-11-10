@@ -166,13 +166,20 @@ public class RelaxedQolClient implements ClientModInitializer {
             com.relaxedqol.client.module.modules.misc.PlayerAlert playerAlert =
                 enabled(com.relaxedqol.client.module.modules.misc.PlayerAlert.class);
             boolean chatOpen = open instanceof net.minecraft.client.gui.screens.ChatScreen;
-            if (playerAlert != null && !com.relaxedqol.client.util.TabHud.open()
-                && (open == null || open instanceof com.relaxedqol.client.gui.HudEditorScreen
-                || (chatOpen && playerAlert.showWhileChatting()))) playerAlert.renderHud(graphics, -1);
-            com.relaxedqol.client.module.modules.player.DurabilityAlert durability =
-                enabled(com.relaxedqol.client.module.modules.player.DurabilityAlert.class);
-            if (durability != null && open == null) durability.renderHud(graphics);
-            com.relaxedqol.client.gui.Toasts.render(graphics);
+            // Each part has its own LoverFella Mode switch (whether it lights up red / cyan)
+            String prevScope = com.relaxedqol.client.gui.LoverFx.beginScope("PlayerAlert");
+            try {
+                if (playerAlert != null && !com.relaxedqol.client.util.TabHud.open()
+                    && (open == null || open instanceof com.relaxedqol.client.gui.HudEditorScreen
+                    || (chatOpen && playerAlert.showWhileChatting()))) playerAlert.renderHud(graphics, -1);
+                com.relaxedqol.client.gui.LoverFx.beginScope("Pop-ups");
+                com.relaxedqol.client.module.modules.player.DurabilityAlert durability =
+                    enabled(com.relaxedqol.client.module.modules.player.DurabilityAlert.class);
+                if (durability != null && open == null) durability.renderHud(graphics);
+                com.relaxedqol.client.gui.Toasts.render(graphics);
+            } finally {
+                com.relaxedqol.client.gui.LoverFx.endScope(prevScope);
+            }
             if (open instanceof ClickGuiScreen || (open != null && ScreenPanelOverlay.isAttachedTo(open))) return;
             OverlayRenderer.renderAll(graphics, partialTicks);
         }

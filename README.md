@@ -24,9 +24,12 @@ Open the menu with **Right Shift** (or the gear on the title screen).
   Fullbright, Freelook, Zoom, Waypoints.
 - **Player** - Inventory Tweaks (shulker preview), Sprint, Durability Alert.
 - **Misc** - HUD (watermark, coordinates, FPS, ping, module list), Quick Panel (4 command buttons on every chest /
-  inventory), Notes, Coords Copy. Screenshots get Copy / Delete buttons in chat.
-- **LoverCraft** - Radar, Player Alert, Trade Shot, Action Bar, LoverFella Mode, Live Map.
-- **Settings** (gear) - menu look, *Edit HUD & Theme* (move and style every HUD element), *Accounts*.
+  inventory), Notes, Notepad (a big window to write a lot in - many lines and pages, saved automatically; also
+  `.notepad`), Coords Copy. Screenshots get Copy / Delete buttons in chat.
+- **LoverCraft** - Radar, Player Alert, Trade Shot, Action Bar, LoverFella Mode, Live Map. LoverFella Mode has a
+  switch for every part: the client menu, the client windows, Minecraft's menus, the HUD logo (top left) and each
+  HUD element (module list, notes card, radar, keystrokes, armor, pop-ups...).
+- **Settings** (gear) - menu look, *Custom Menu Buttons* (off = Minecraft's normal buttons in every menu again), *Edit HUD & Theme* (move and style every HUD element), *Accounts*.
 
 ## Accounts (switch account in the game, session renews by itself)
 

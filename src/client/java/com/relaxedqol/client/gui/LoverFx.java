@@ -37,10 +37,50 @@ public final class LoverFx {
         return module;
     }
 
-    /** Whether LoverFella Mode is on. */
-    public static boolean on() {
+    /** Whether LoverFella Mode itself is on (whatever part of the client is being drawn). */
+    public static boolean modeOn() {
         LoverFellaMode m = module();
         return m != null && m.isEnabled() && !com.relaxedqol.client.util.Privacy.hides(m);
+    }
+
+    /**
+     * The HUD element being drawn right now ("Watermark", "Info Panel", "Module List", a card module's name...),
+     * or null while a menu / window is drawn. Every part of the client has its own LoverFella switch.
+     */
+    private static String scope;
+
+    /** Starts drawing a HUD element; returns the previous scope, to hand back to {@link #endScope}. */
+    public static String beginScope(String element) {
+        String prev = scope;
+        scope = element;
+        return prev;
+    }
+
+    public static void endScope(String prev) {
+        scope = prev;
+    }
+
+    /**
+     * Whether the LoverCraft look applies to what is drawn right now: the mode is on and the switch for this part
+     * (this HUD element, the client windows, or the client menu) is on.
+     */
+    public static boolean on() {
+        if (!modeOn()) return false;
+        LoverFellaMode m = module();
+        if (scope != null) return m.hudLit(scope);
+        net.minecraft.client.gui.screens.Screen open = net.minecraft.client.Minecraft.getInstance().gui.screen();
+        return open instanceof WindowScreen ? m.clientWindows() : m.clientMenu();
+    }
+
+    /** The LoverCraft logo instead of the normal watermark in the top-left corner. */
+    public static boolean watermarkOn() {
+        return modeOn() && module().hudLogo();
+    }
+
+    /** Title screen / server list / Esc menu decorations (and only while the client's menu look is used there). */
+    private static boolean minecraftMenusOn(LoverFellaMode m) {
+        return m != null && m.isEnabled() && m.minecraftMenus()
+            && com.relaxedqol.client.module.modules.client.ClickGUI.customButtons();
     }
 
     public static boolean chatTag() {
@@ -160,7 +200,7 @@ public final class LoverFx {
     /** Behind the buttons of the pause menu / title screen / server list: a navy wash and drifting hearts. */
     public static void menuBackground(net.minecraft.client.gui.screens.Screen screen, GuiGraphicsExtractor g) {
         LoverFellaMode m = module();
-        if (m == null || !m.isEnabled()) return;
+        if (!minecraftMenusOn(m)) return;
         int vw = screen.width;
         int vh = screen.height;
         // Calm and clean - a soft navy tint that deepens towards the edges, a few faint hearts, one hairline
@@ -194,7 +234,7 @@ public final class LoverFx {
      */
     public static void menuForeground(net.minecraft.client.gui.screens.Screen screen, GuiGraphicsExtractor g, int mx, int my) {
         LoverFellaMode m = module();
-        if (m == null || !m.isEnabled()) return;
+        if (!minecraftMenusOn(m)) return;
         Font font = net.minecraft.client.Minecraft.getInstance().font;
         // The Esc menu has its own, smaller figures spread over several buttons
         if (screen instanceof net.minecraft.client.gui.screens.PauseScreen) {

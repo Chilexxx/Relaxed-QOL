@@ -83,22 +83,40 @@ public final class Culling {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || e == mc.getCameraEntity() || e == mc.player) return false;
         if (e instanceof net.minecraft.world.entity.player.Player) return false;
-        if (e.getClass().getSimpleName().contains("TextDisplay")) return false;
-        if (special(e)) return false;
-        AABB box = e.getBoundingBox();
-        if (box.getXsize() > 3 || box.getYsize() > 4 || box.getZsize() > 3) return false;
-        Vec3 eye = eye(mc);
-        if (eye == null || insideBlock(mc, eye)) return false;
-        Vec3 c = box.getCenter();
-        if (c.distanceToSqr(eye) < MIN_DIST * MIN_DIST) return false;
+        // The answer from a moment ago first: at a busy spawn this runs for every entity every frame, so the
+        // slower checks below (names, reflection, rays) only run when the kept answer is too old
         long now = System.currentTimeMillis();
         housekeeping(mc, now);
         long[] cached = ENTITIES.get(e.getId());
-        if (cached != null && now - cached[0] < (cached[1] == 1 ? KEEP_HIDDEN_MS : KEEP_VISIBLE_MS)) return cached[1] == 1;
-        double x0 = box.minX + 0.05, x1 = box.maxX - 0.05, y0 = box.minY + 0.05, y1 = box.maxY - 0.05, z0 = box.minZ + 0.05, z1 = box.maxZ - 0.05;
-        boolean hidden = !visible(mc, eye, c.x, c.y, c.z) && !visible(mc, eye, c.x, y1, c.z) && cornersHidden(mc, eye, x0, y0, z0, x1, y1, z1);
-        ENTITIES.put(e.getId(), new long[]{now, hidden ? 1 : 0});
+        if (cached != null && now - cached[0] < keep(cached[1] == 1 ? KEEP_HIDDEN_MS : KEEP_VISIBLE_MS, e.getId())) return cached[1] == 1;
+        boolean hidden = checkEntity(mc, e);
+        if (cached != null) {
+            cached[0] = now;
+            cached[1] = hidden ? 1 : 0;
+        } else {
+            ENTITIES.put(e.getId(), new long[]{now, hidden ? 1 : 0});
+        }
         return hidden;
+    }
+
+    /** How long an answer is kept, spread a little per thing so the re-checks do not all land on the same frame. */
+    private static long keep(long base, long key) {
+        // Low-End PC: answers are kept twice as long (half the rays)
+        if (com.relaxedqol.client.module.modules.client.ClickGUI.lowEnd()) base *= 2;
+        return base + ((key * 0x9E3779B97F4A7C15L) >>> 59); // + 0..31 ms
+    }
+
+    private static boolean checkEntity(Minecraft mc, Entity e) {
+        if (e.getClass().getSimpleName().contains("TextDisplay")) return false;
+        AABB box = e.getBoundingBox();
+        if (box.getXsize() > 3 || box.getYsize() > 4 || box.getZsize() > 3) return false;
+        Vec3 eye = eye(mc);
+        if (eye == null) return false;
+        Vec3 c = box.getCenter();
+        if (c.distanceToSqr(eye) < MIN_DIST * MIN_DIST) return false;
+        if (insideBlock(mc, eye) || special(e)) return false;
+        double x0 = box.minX + 0.05, x1 = box.maxX - 0.05, y0 = box.minY + 0.05, y1 = box.maxY - 0.05, z0 = box.minZ + 0.05, z1 = box.maxZ - 0.05;
+        return !visible(mc, eye, c.x, c.y, c.z) && !visible(mc, eye, c.x, y1, c.z) && cornersHidden(mc, eye, x0, y0, z0, x1, y1, z1);
     }
 
     /** Whether a block entity at pos (chest, sign, head...) is completely hidden and can be skipped. */
@@ -113,28 +131,38 @@ public final class Culling {
 
     private static boolean blockHidden$timed(BlockPos pos, Object state) {
         if (!enabled() || pos == null) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return false;
+        long now = System.currentTimeMillis();
+        housekeeping(mc, now);
+        long key = pos.asLong();
+        long[] cached = BLOCKS.get(key);
+        if (cached != null && now - cached[0] < keep(cached[1] == 1 ? KEEP_HIDDEN_BLOCK_MS : KEEP_VISIBLE_MS, key)) return cached[1] == 1;
+        boolean hidden = checkBlock(mc, pos, state);
+        if (cached != null) {
+            cached[0] = now;
+            cached[1] = hidden ? 1 : 0;
+        } else {
+            BLOCKS.put(key, new long[]{now, hidden ? 1 : 0});
+        }
+        return hidden;
+    }
+
+    private static boolean checkBlock(Minecraft mc, BlockPos pos, Object state) {
         if (state != null) {
             String n = state.getClass().getSimpleName();
             // Beams that are seen over walls
             if (n.contains("Beacon") || n.contains("Gateway") || n.contains("EndPortal")) return false;
         }
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return false;
         Vec3 eye = eye(mc);
-        if (eye == null || insideBlock(mc, eye)) return false;
+        if (eye == null) return false;
         double cx = pos.getX() + 0.5, cy = pos.getY() + 0.5, cz = pos.getZ() + 0.5;
         double dx = cx - eye.x, dy = cy - eye.y, dz = cz - eye.z;
         if (dx * dx + dy * dy + dz * dz < MIN_DIST * MIN_DIST) return false;
-        long now = System.currentTimeMillis();
-        housekeeping(mc, now);
-        long key = pos.asLong();
-        long[] cached = BLOCKS.get(key);
-        if (cached != null && now - cached[0] < (cached[1] == 1 ? KEEP_HIDDEN_BLOCK_MS : KEEP_VISIBLE_MS)) return cached[1] == 1;
+        if (insideBlock(mc, eye)) return false;
         double a = 0.08, b = 0.92;
-        boolean hidden = !visible(mc, eye, cx, cy, cz)
+        return !visible(mc, eye, cx, cy, cz)
             && cornersHidden(mc, eye, pos.getX() + a, pos.getY() + a, pos.getZ() + a, pos.getX() + b, pos.getY() + b, pos.getZ() + b);
-        BLOCKS.put(key, new long[]{now, hidden ? 1 : 0});
-        return hidden;
     }
 
     /** All 8 corners of the box are out of sight (stops at the first one that can be seen). */

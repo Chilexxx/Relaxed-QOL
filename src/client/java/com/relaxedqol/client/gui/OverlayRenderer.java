@@ -37,9 +37,11 @@ public final class OverlayRenderer {
         if (radar != null) {
             // Every card is drawn in its own look (HUD editor), or the theme's
             HudStyle.begin(radar.cardStyle());
+            String prev = LoverFx.beginScope("Radar");
             try {
                 radar.render(g, mc.font, vw, vh, partialTicks);
             } finally {
+                LoverFx.endScope(prev);
                 HudStyle.end();
             }
         }
@@ -50,9 +52,11 @@ public final class OverlayRenderer {
             if (tab && !(m instanceof com.relaxedqol.client.module.modules.render.ArmorStatus)) continue;
             if (m instanceof HudCard card && card.showsCard()) {
                 HudStyle.begin(card.cardStyle());
+                String prev = LoverFx.beginScope(m.getName());
                 try {
                     card.render(g, mc.font, vw, vh);
                 } finally {
+                    LoverFx.endScope(prev);
                     HudStyle.end();
                 }
             }

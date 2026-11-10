@@ -60,7 +60,8 @@ public class Notes extends Module implements HudCard {
         }
         int k = openKey.getKey();
         boolean typing = mc.gui.screen() instanceof net.minecraft.client.gui.screens.ChatScreen
-            || (mc.gui.screen() != null && mc.gui.screen().getFocused() instanceof net.minecraft.client.gui.components.EditBox);
+            || (mc.gui.screen() != null && (mc.gui.screen().getFocused() instanceof net.minecraft.client.gui.components.EditBox
+                || mc.gui.screen().getFocused() instanceof net.minecraft.client.gui.components.MultiLineEditBox));
         boolean down = k >= 0 && mc.getWindow() != null && !typing
             && com.mojang.blaze3d.platform.InputConstants.isKeyDown(mc.getWindow(), k);
         if (down && !keyWas && mc.player != null && !(mc.gui.screen() instanceof NotesScreen)) open();

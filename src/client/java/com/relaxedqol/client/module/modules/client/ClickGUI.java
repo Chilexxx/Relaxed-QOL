@@ -55,6 +55,13 @@ public class ClickGUI extends Module {
     /** Apple-style smooth text (Inter) in the client's windows and cards. */
     private final Setting<Boolean> smoothFont = addSetting(new Setting<>("Smooth Font", false),
         "Smooth, Apple-style text (no pixel font) in the client's windows and the Notes card");
+    /**
+     * The client's own look on Minecraft's menus (rounded dark buttons and text fields in the title screen, options,
+     * server list, join screens...). Off = Minecraft's normal buttons everywhere.
+     */
+    private final Setting<Boolean> customButtons = addSetting(new Setting<>("Custom Menu Buttons", true),
+        "The client's rounded dark buttons and text fields in all Minecraft menus (settings, server list, joining a"
+            + " server...). Off = Minecraft's normal buttons and menus again");
     /** The Screenshots module became this switch. */
     private final Setting<Boolean> screenshotTools = addSetting(new Setting<>("Screenshot Tools", true),
         "After F2: the screenshot is copied to your clipboard and one chat line shows Copy / Open / Folder / Delete"
@@ -148,6 +155,12 @@ public class ClickGUI extends Module {
     public static boolean smoothFont() {
         ClickGUI g = self;
         return g == null || g.smoothFont.getValue();
+    }
+
+    /** Safe at any time, also while sprites are drawn very early (on until the settings exist). */
+    public static boolean customButtons() {
+        ClickGUI g = self;
+        return g == null || g.customButtons.getValue();
     }
 
     /** Safe at any time (on until the settings exist). */

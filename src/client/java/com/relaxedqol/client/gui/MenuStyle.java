@@ -12,14 +12,28 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 /**
- * The buttons themselves are restyled by the client's own textures (assets/minecraft/textures/gui/sprites/widget:
- * rounded dark buttons, accent on hover, rounded text fields) - Minecraft draws them, nothing is painted over.
+ * The buttons themselves are restyled by the client's own textures (assets/relaxed-qol/textures/gui/sprites/widget:
+ * rounded dark buttons, accent on hover, rounded text fields) - Minecraft draws them, nothing is painted over. They
+ * are used instead of Minecraft's while Settings > Custom Menu Buttons is on ({@link #buttonSprite}).
  * The client button there reads "Relaxed QOL" with a gear icon.
  */
 public final class MenuStyle {
     private static Button menuButton;
 
     private MenuStyle() {}
+
+    private static final java.util.Set<String> OWN_SPRITES = java.util.Set.of("widget/button", "widget/button_disabled",
+        "widget/button_highlighted", "widget/text_field", "widget/text_field_highlighted");
+
+    /**
+     * Minecraft is about to draw a sprite: its buttons / text fields become the client's rounded ones while
+     * Settings > Custom Menu Buttons is on; anything else (and everything when it is off) stays as it is.
+     */
+    public static net.minecraft.resources.Identifier buttonSprite(net.minecraft.resources.Identifier sprite) {
+        if (sprite == null || !"minecraft".equals(sprite.getNamespace()) || !OWN_SPRITES.contains(sprite.getPath())) return sprite;
+        if (!ClickGUI.customButtons()) return sprite;
+        return net.minecraft.resources.Identifier.fromNamespaceAndPath("relaxed-qol", sprite.getPath());
+    }
 
     /** The round gear button (top-left) that opens the client menu. */
     public static Button gearButton(Screen screen) {
