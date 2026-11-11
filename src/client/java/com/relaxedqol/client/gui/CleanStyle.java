@@ -27,6 +27,21 @@ public final class CleanStyle {
     }
 
     /** Liquid Glass Style (Clean Style's look plus the glass finish on everything). */
+    /**
+     * Liquid Glass: Minecraft's own menu blur behind the client's menus and windows (when Menu Background Blur is on
+     * in the video settings). Once per frame at most; a game that refuses just shows no blur.
+     */
+    public static void blurBehind(net.minecraft.client.gui.GuiGraphicsExtractor g) {
+        if (!liquid()) return;
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.options.getMenuBackgroundBlurriness() < 1) return;
+        try {
+            g.blurBeforeThisStratum();
+        } catch (IllegalStateException ignored) {
+            // already blurred this frame
+        }
+    }
+
     public static boolean liquid() {
         return com.relaxedqol.client.module.modules.client.ClickGUI.liquidStyle()
             && !com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle();
@@ -57,7 +72,20 @@ public final class CleanStyle {
                 Render2D.horizontalGradient(g, x + inset + lineW / 2, y + 1, lineW - lineW / 2, 1, (a << 24) | 0xFFFFFF, 0x00FFFFFF);
                 g.fill(x + inset, y + h - 2, x + w - inset, y + h - 1, Theme.withAlpha(0xFFFFFFFF, Math.min(0.12f, 0.05f * k)));
             }
+            // Light catching the edges like real glass: bright down the left from the top, and on the lower right
+            // where light comes back out
+            int edge = Math.round(Math.min(0.55f, 0.30f * k) * 255);
+            int mid = y + h / 2;
+            if (mid > y + r + 2) {
+                g.fillGradient(x + 1, y + r, x + 2, mid, (edge << 24) | 0xFFFFFF, 0x00FFFFFF);
+                g.fillGradient(x + w - 2, mid, x + w - 1, y + h - r, 0x00FFFFFF, ((edge / 2) << 24) | 0xFFFFFF);
+            }
+            if (lineW > 4) {
+                Render2D.horizontalGradient(g, x + w / 2, y + h - 2, w / 2 - inset, 1, 0x00FFFFFF, ((edge * 2 / 3) << 24) | 0xFFFFFF);
+            }
         }
-        Render2D.roundOutline(g, x, y, w, h, r, 0x40FFFFFF);
+        // A faint inner edge (light bending at the glass's thickness), then the rim
+        if (w > 6 && h > 6) Render2D.roundOutline(g, x + 1, y + 1, w - 2, h - 2, Math.max(0, r - 1), 0x10FFFFFF);
+        Render2D.roundOutline(g, x, y, w, h, r, 0x48FFFFFF);
     }
 }

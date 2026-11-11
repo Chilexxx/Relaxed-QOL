@@ -172,6 +172,8 @@ public abstract class WindowScreen extends Screen {
                 int edge = active ? Theme.withAlpha(color, 0.70f + 0.25f * glow) : Theme.mix(Theme.BORDER, 0x4DFFFFFF, glow);
                 Render2D.roundRect(g, p.x(), p.y(), p.w(), p.h(), r, bg);
                 Render2D.roundOutline(g, p.x(), p.y(), p.w(), p.h(), r, edge);
+                // Liquid Glass: a little light on each button's top edge
+                if (CleanStyle.liquid() && p.w() > 2 * r + 2) g.fill(p.x() + r, p.y() + 1, p.x() + p.w() - r, p.y() + 2, 0x38FFFFFF);
                 int text = active ? Theme.mix(color, 0xFFFFFFFF, 0.45f) : Theme.mix(Theme.TEXT_SECONDARY, Theme.TEXT, glow);
                 g.centeredText(font, shown, p.x() + p.w() / 2, p.y() + (p.h() - 8) / 2 + (pressed ? 1 : 0), text);
                 continue;
@@ -513,6 +515,9 @@ public abstract class WindowScreen extends Screen {
             boolean live = passThroughToParent() && !overWindow(mouseX / vs, mouseY / vs);
             behind.extractRenderStateWithTooltipAndSubtitles(g, live ? mouseX : -1000, live ? mouseY : -1000, partialTick);
             g.nextStratum();
+        } else {
+            // Liquid Glass: the world blurred behind the glass window (not over a chest you are using)
+            CleanStyle.blurBehind(g);
         }
         if (dimBehind()) {
             float in = Render2D.easeOut((System.currentTimeMillis() - openedAt) / 220f);

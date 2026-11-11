@@ -6,6 +6,8 @@
 * More FPS: every HUD card is kept and repeated on its own, so one card with items no longer makes all of them draw every frame
 * Hotbar: a cleaner frosted glass bar in Clean and Liquid Glass Style - faint slots, a light glass selection that slides, neater stack counts
 + Liquid Glass Style: a new style where everything is liquid glass - clear see-through panels with a glossy shine, a bright edge and light along the bottom, and liquid glass hearts and hunger (Settings or the Style Editor)
+* Liquid Glass Style: the world is blurred behind menus and windows, and light catches every edge
+* Shulker preview: follows your style - glass in Clean and Liquid Glass Style, Minecraft's panel in Vanilla Style
 * Liquid Glass icons: more depth - a second reflection and a darker band under the shine
 * Panels layout: the panel you use comes to the front, so its settings are never hidden behind another panel
 * Panels layout: folding and unfolding a category slides smoothly

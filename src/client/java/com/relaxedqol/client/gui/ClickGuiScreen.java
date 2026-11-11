@@ -667,6 +667,8 @@ public class ClickGuiScreen extends Screen {
         ClickGUI gui = settings();
         if ((gui == null || gui.useBlur()) && minecraft.options.getMenuBackgroundBlurriness() >= 1) {
             graphics.blurBeforeThisStratum();
+        } else {
+            CleanStyle.blurBehind(graphics); // Liquid Glass: the world blurred behind the glass
         }
         graphics.fillGradient(0, 0, width, height, 0x14000008, 0x30000010);
     }
