@@ -4,6 +4,7 @@
 * Panels layout: click a category's title to fold it in (drag it to move it, like before)
 * Radar: clicking it opens a window in the middle of the screen instead of the whole screen
 * More FPS: every HUD card is kept and repeated on its own, so one card with items no longer makes all of them draw every frame
+* Hotbar: a frosted glass bar in Clean Style - every slot its own glass tile, a bright glass selection that slides
 * Clean Style: liquid glass everywhere - a glossy shine, a bright edge on top and light along the bottom on windows, menus, pop-ups and the hotbar
 * Liquid Glass icons: more depth - a second reflection and a darker band under the shine
 * Panels layout: folding and unfolding a category slides smoothly

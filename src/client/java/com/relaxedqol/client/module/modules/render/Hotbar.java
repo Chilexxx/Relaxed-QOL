@@ -74,9 +74,11 @@ public class Hotbar extends Module {
         float a = opacity.getValue() / 100f;
         if (a <= 0.01f) return;
         if (CleanStyle.on()) {
-            int tint = Theme.mix(0xFF0A0B0E, Theme.accent(), com.relaxedqol.client.module.modules.client.ClickGUI.glassTint() * 0.5f);
-            Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(tint, 0.38f * a));
-            Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(0xFFFFFFFF, 0.06f * a));
+            // Frosted glass: a light veil over the world (not a dark box), a breath of the accent, the glossy finish
+            float tint = com.relaxedqol.client.module.modules.client.ClickGUI.glassTint();
+            Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(0xFF000000, 0.20f * a));
+            Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(0xFFFFFFFF, 0.09f * a));
+            if (tint > 0.01f) Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(Theme.accent(), Math.min(0.14f, tint * 0.2f) * a));
             CleanStyle.gloss(g, x, y, w, h, r);
             return;
         }
@@ -93,12 +95,18 @@ public class Hotbar extends Module {
         int cx = g.guiWidth() / 2;
         int x = cx - 91;
         int y = g.guiHeight() - 22;
-        int r = radius(22);
-        int accent = Theme.accent();
         boolean clean = CleanStyle.on();
+        // Clean Style: a fully rounded glass bar; otherwise the theme's roundness
+        int r = clean ? 11 : radius(22);
+        int accent = Theme.accent();
         panel(g, x, y, 182, 22, r);
-        // Quiet dividers between the slots instead of boxes
-        for (int i = 1; i < 9; i++) g.fill(x + 1 + i * 20, y + 6, x + 2 + i * 20, y + 16, clean ? 0x18FFFFFF : 0x12FFFFFF);
+        // Each slot its own small tile (a pane of glass in Clean Style) with light on its top edge
+        int tr = clean ? 6 : Math.max(2, Math.min(r - 1, Theme.R_CONTROL + 1));
+        for (int i = 0; i < 9; i++) {
+            int tx = x + 2 + i * 20;
+            Render2D.roundRect(g, tx, y + 2, 18, 18, tr, clean ? 0x14FFFFFF : 0x0FFFFFFF);
+            g.fill(tx + tr, y + 2, tx + 18 - tr, y + 3, clean ? 0x30FFFFFF : 0x14FFFFFF);
+        }
         // The selection glides to the picked slot
         int sel = p.getInventory().getSelectedSlot();
         float target = x + 1 + sel * 20;
@@ -108,17 +116,21 @@ public class Hotbar extends Module {
         if (selX < 0 || !slide.getValue() || Theme.ANIM <= 0.01f || Math.abs(selX - target) > 400) selX = target;
         else selX += (target - selX) * Math.min(1f, dt * 18f * Theme.ANIM);
         int sx = Math.round(selX);
-        int sr = Math.max(2, Math.min(r - 1, Theme.R_CONTROL + 2));
-        Render2D.glow(g, sx + 1, y + 2, 18, 18, accent, 0.7f);
+        int sr = tr + 1;
         if (clean) {
-            // A brighter pane of glass with a thin accent edge and a short accent line at the bottom
-            Render2D.roundRect(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(Theme.mix(0xFFFFFFFF, accent, 0.35f), 0.20f));
-            Render2D.roundOutline(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(Theme.mix(0xFFFFFFFF, accent, 0.6f), 0.75f));
+            // The picked slot: a bright, slightly raised pane of glass - a soft accent glow under it, a white rim, a
+            // shine on its top half and a short accent line at the bottom
+            Render2D.glow(g, sx, y + 1, 20, 20, accent, 0.55f);
+            Render2D.roundRect(g, sx, y + 1, 20, 20, sr, Theme.withAlpha(Theme.mix(0xFFFFFFFF, accent, 0.25f), 0.24f));
+            Render2D.clipRounded(g, sx, y + 1, 20, 20, sr, () -> g.fillGradient(sx, y + 1, sx + 20, y + 11, 0x40FFFFFF, 0x00FFFFFF));
+            Render2D.roundOutline(g, sx, y + 1, 20, 20, sr, 0xB0FFFFFF);
+            g.fill(sx + sr, y + 2, sx + 20 - sr, y + 3, 0x90FFFFFF);
         } else {
-            Render2D.roundRect(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(accent, 0.22f));
+            Render2D.glow(g, sx + 1, y + 2, 18, 18, accent, 0.7f);
+            Render2D.roundRect(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(accent, 0.24f));
             Render2D.roundOutline(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(accent, 0.85f));
         }
-        Render2D.roundRect(g, sx + 7, y + 19, 6, 1, 0, accent);
+        Render2D.roundRect(g, sx + 6, y + 19, 8, 1, 0, accent);
         // Items
         for (int i = 0; i < 9; i++) {
             ItemStack stack = p.getInventory().getItem(i);
@@ -140,7 +152,8 @@ public class Hotbar extends Module {
         if (!off.isEmpty()) {
             boolean left = p.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT;
             int ox = left ? x - 26 : x + 182 + 4;
-            panel(g, ox, y, 22, 22, r);
+            panel(g, ox, y, 22, 22, clean ? 11 : r);
+            Render2D.roundRect(g, ox + 2, y + 2, 18, 18, tr, clean ? 0x14FFFFFF : 0x0FFFFFFF);
             g.item(off, ox + 3, y + 3);
             g.itemDecorations(mc.font, off, ox + 3, y + 3);
         }
