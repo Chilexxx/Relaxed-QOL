@@ -60,7 +60,7 @@ public class ClickGUI extends Module {
     /** Smooth text (Inter) in the client's windows and cards. */
     private final Setting<Boolean> smoothFont = addSetting(new Setting<>("Smooth Font", false)
         .lockedWhen(() -> this.vanillaStyle.getValue() ? "Vanilla Style always uses Minecraft's pixel font, so this switch does"
-            + " nothing while it is on" : this.cleanStyle.getValue() ? "Clean Style always uses the smooth font, so this switch"
+            + " nothing while it is on" : this.cleanStyle.getValue() || this.liquidStyle.getValue() ? "Clean Style always uses the smooth font, so this switch"
             + " does nothing while it is on" : null),
         "Smooth, anti-aliased text (no pixel font) in the client's windows and the Notes card");
     /**
@@ -85,6 +85,7 @@ public class ClickGUI extends Module {
     private final Setting<Boolean> vanillaStyle = addSetting(new Setting<>("Vanilla Style", false)
         .onChange(() -> {
             if (this.vanillaStyle.getValue() && this.cleanStyle != null) this.cleanStyle.setValue(false);
+            if (this.vanillaStyle.getValue() && this.liquidStyle != null) this.liquidStyle.setValue(false);
             com.relaxedqol.client.gui.ClickGuiScreen.styleChanged();
         }),
         "Makes every client menu, window, button and card look like normal Minecraft: square dark panels, Minecraft's"
@@ -96,16 +97,34 @@ public class ClickGUI extends Module {
      */
     private final Setting<Boolean> cleanStyle = addSetting(new Setting<>("Clean Style", false)
         .onChange(() -> {
-            if (this.cleanStyle.getValue()) this.vanillaStyle.setValue(false);
+            if (this.cleanStyle.getValue()) {
+                this.vanillaStyle.setValue(false);
+                if (this.liquidStyle != null) this.liquidStyle.setValue(false);
+            }
             com.relaxedqol.client.gui.ClickGuiScreen.styleChanged();
         }),
         "A frosted-glass look for every client menu, window and HUD card (the layout stays the same): see-through"
             + " panels in your theme's colours, soft edges, smooth text, switches and sliders in your accent colour, plain"
             + " see-through HUD boxes. Glass Tint % tints the glass with your accent");
+    /**
+     * Liquid Glass: Clean Style's see-through look with a glass finish on everything - a glossy shine on top, a bright
+     * edge, light along the bottom - and the hotbar's liquid glass icons.
+     */
+    private final Setting<Boolean> liquidStyle = addSetting(new Setting<>("Liquid Glass Style", false)
+        .onChange(() -> {
+            if (this.liquidStyle.getValue()) {
+                this.vanillaStyle.setValue(false);
+                this.cleanStyle.setValue(false);
+            }
+            com.relaxedqol.client.gui.ClickGuiScreen.styleChanged();
+        }),
+        "Everything as liquid glass: clear see-through panels with a glossy shine on top, a bright edge and light along"
+            + " the bottom - windows, the menu, pop-ups and the hotbar (its hearts, hunger and armor too). Glass Tint %"
+            + " tints it with your accent, Style Editor > Glass shine sets how glossy");
     /** Clean Style: how much the see-through glass panels and their edges take on the accent colour. */
     private final Setting<Integer> glassTint = addSetting(new Setting<>("Glass Tint %", 20, 0, 60, 5)
-        .showIf(() -> this.cleanStyle.getValue()),
-        "Clean Style: how much the see-through panels and their edges are tinted with your accent colour (0 = neutral glass)."
+        .showIf(() -> this.cleanStyle.getValue() || this.liquidStyle.getValue()),
+        "Clean / Liquid Glass Style: how much the see-through panels and their edges are tinted with your accent colour (0 = neutral glass)."
             + " Accent, surface, text, roundness, borders and shadows come from your theme (Edit HUD & Theme)");
     /** The Screenshots module became this switch. */
     private final Setting<Boolean> screenshotTools = addSetting(new Setting<>("Screenshot Tools", true),
@@ -254,7 +273,7 @@ public class ClickGUI extends Module {
         String look = g.buttonLook.getValue();
         if (!"Match Style".equals(look)) return look;
         if (g.vanillaStyle.getValue()) return "Minecraft";
-        return g.cleanStyle.getValue() ? "Glass" : "Rounded Dark";
+        return g.cleanStyle.getValue() || g.liquidStyle.getValue() ? "Glass" : "Rounded Dark";
     }
 
     /** The Custom Menu Buttons switch itself (on in every style, for LoverFella Mode's menu decorations). */
@@ -273,6 +292,16 @@ public class ClickGUI extends Module {
     public static boolean cleanStyle() {
         ClickGUI g = self;
         return g != null && g.cleanStyle.getValue();
+    }
+
+    /** Settings > Liquid Glass Style. Safe at any time (off until loaded). */
+    public static boolean liquidStyle() {
+        ClickGUI g = self;
+        return g != null && g.liquidStyle.getValue();
+    }
+
+    public Setting<Boolean> liquidStyleSetting() {
+        return liquidStyle;
     }
 
     /** Settings > Vanilla Style: the whole client drawn like Minecraft's own menus. Safe at any time (off until loaded). */

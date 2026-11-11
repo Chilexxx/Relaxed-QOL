@@ -112,6 +112,8 @@ public final class Theme {
             int accent = accent(0);
             int base = mix(surface, accent, tint * 0.6f);
             float alpha = Math.max(0.30f, Math.min(0.95f, 0.35f + opacity() * 0.5f));
+            // Liquid Glass: clearer glass than Clean Style
+            if (CleanStyle.liquid()) alpha = Math.max(0.24f, alpha - 0.10f);
             PANEL = withAlpha(base, alpha);
             PANEL_HEADER = withAlpha(shade(base, -0.25f), Math.min(1f, alpha + 0.08f));
             SETTINGS_BG = withAlpha(shade(base, -0.35f), alpha * 0.6f);

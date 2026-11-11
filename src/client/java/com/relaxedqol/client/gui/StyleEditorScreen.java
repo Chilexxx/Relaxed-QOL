@@ -42,12 +42,12 @@ public class StyleEditorScreen extends WindowScreen {
     }
 
     private String styleName() {
-        return VanillaStyle.on() ? "Vanilla" : CleanStyle.on() ? "Clean" : "Normal";
+        return VanillaStyle.on() ? "Vanilla" : CleanStyle.liquid() ? "Liquid" : CleanStyle.on() ? "Clean" : "Normal";
     }
 
     @Override
     protected String titleInfo() {
-        return styleName() + " Style";
+        return (styleName().equals("Liquid") ? "Liquid Glass" : styleName()) + " Style";
     }
 
     private int leftW() {
@@ -59,6 +59,7 @@ public class StyleEditorScreen extends WindowScreen {
         if (gui == null) return;
         gui.vanillaStyleSetting().setValue(style.equals("Vanilla"));
         gui.cleanStyleSetting().setValue(style.equals("Clean"));
+        gui.liquidStyleSetting().setValue(style.equals("Liquid"));
         Theme.refreshNow();
         save();
         rebuildWidgets();
@@ -76,9 +77,9 @@ public class StyleEditorScreen extends WindowScreen {
         int x = contentX();
         int y = contentY() + 10;
         int lw = leftW();
-        int seg = (lw - 8) / 3;
-        String[] styles = {"Normal", "Clean", "Vanilla"};
-        for (int i = 0; i < 3; i++) {
+        int seg = (lw - 12) / 4;
+        String[] styles = {"Normal", "Clean", "Liquid", "Vanilla"};
+        for (int i = 0; i < 4; i++) {
             String st = styles[i];
             pill(() -> st, x + i * (seg + 4), y, seg, 15, () -> setStyle(st), 0, () -> styleName().equals(st));
         }
@@ -92,7 +93,7 @@ public class StyleEditorScreen extends WindowScreen {
         sliders.add(new Slider("Borders", gui.themeBorder(), () -> !VanillaStyle.on()));
         sliders.add(new Slider("Shadows", gui.themeShadow(), () -> !VanillaStyle.on()));
         sliders.add(new Slider("Glow", gui.themeGlow(), () -> !VanillaStyle.on()));
-        sliders.add(new Slider("Glass shine", gui.themeSheen(), CleanStyle::on));
+        sliders.add(new Slider("Glass shine", gui.themeSheen(), CleanStyle::liquid));
         sliders.add(new Slider("Glass tint", gui.glassTintSetting(), CleanStyle::on));
         sliders.add(new Slider("Animation speed", gui.themeAnim(), () -> true));
         int by = contentY() + contentH() - 15;
@@ -173,7 +174,7 @@ public class StyleEditorScreen extends WindowScreen {
             Render2D.shadow(g, mx, my, mw, mh, r);
             Render2D.roundRect(g, mx, my, mw, mh, r, body);
             Render2D.roundRectTop(g, mx, my, mw, th, r, 0x08FFFFFF);
-            if (CleanStyle.on() && Theme.SHEEN > 0.01f) {
+            if (CleanStyle.liquid() && Theme.SHEEN > 0.01f) {
                 Render2D.roundRectTop(g, mx + 1, my + 1, mw - 2, mh / 3, Math.max(0, r - 1),
                     Theme.withAlpha(0xFFFFFFFF, Math.min(0.14f, 0.05f * Theme.SHEEN)));
             }
@@ -215,7 +216,7 @@ public class StyleEditorScreen extends WindowScreen {
         Render2D.shadow(g, mx, ty, tw, tH, r);
         if (CleanStyle.on()) {
             Render2D.roundRect(g, mx, ty, tw, tH, r, Theme.withAlpha(Theme.mix(Theme.PANEL, accent, 0.08f), 0.55f));
-            if (Theme.SHEEN > 0.01f) {
+            if (CleanStyle.liquid() && Theme.SHEEN > 0.01f) {
                 Render2D.roundRect(g, mx + 1, ty + 1, tw - 2, tH / 2, r - 1, Theme.withAlpha(0xFFFFFFFF, Math.min(0.16f, 0.07f * Theme.SHEEN)));
             }
             Render2D.roundOutline(g, mx, ty, tw, tH, r, 0x38FFFFFF);
