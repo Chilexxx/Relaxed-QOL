@@ -100,12 +100,10 @@ public class Hotbar extends Module {
         int r = clean ? 11 : radius(22);
         int accent = Theme.accent();
         panel(g, x, y, 182, 22, r);
-        // Each slot its own small tile (a pane of glass in Clean Style) with light on its top edge
-        int tr = clean ? 6 : Math.max(2, Math.min(r - 1, Theme.R_CONTROL + 1));
+        // Slots: barely-there wells, so the bar reads as one clean piece and the items stand out
+        int tr = clean ? 7 : Math.max(2, Math.min(r - 1, Theme.R_CONTROL + 1));
         for (int i = 0; i < 9; i++) {
-            int tx = x + 2 + i * 20;
-            Render2D.roundRect(g, tx, y + 2, 18, 18, tr, clean ? 0x14FFFFFF : 0x0FFFFFFF);
-            g.fill(tx + tr, y + 2, tx + 18 - tr, y + 3, clean ? 0x30FFFFFF : 0x14FFFFFF);
+            Render2D.roundRect(g, x + 2 + i * 20, y + 2, 18, 18, tr, clean ? 0x0CFFFFFF : 0x0AFFFFFF);
         }
         // The selection glides to the picked slot
         int sel = p.getInventory().getSelectedSlot();
@@ -118,32 +116,29 @@ public class Hotbar extends Module {
         int sx = Math.round(selX);
         int sr = tr + 1;
         if (clean) {
-            // The picked slot: a bright, slightly raised pane of glass - a soft accent glow under it, a white rim, a
-            // shine on its top half and a short accent line at the bottom
-            Render2D.glow(g, sx, y + 1, 20, 20, accent, 0.55f);
-            Render2D.roundRect(g, sx, y + 1, 20, 20, sr, Theme.withAlpha(Theme.mix(0xFFFFFFFF, accent, 0.25f), 0.24f));
-            Render2D.clipRounded(g, sx, y + 1, 20, 20, sr, () -> g.fillGradient(sx, y + 1, sx + 20, y + 11, 0x40FFFFFF, 0x00FFFFFF));
-            Render2D.roundOutline(g, sx, y + 1, 20, 20, sr, 0xB0FFFFFF);
-            g.fill(sx + sr, y + 2, sx + 20 - sr, y + 3, 0x90FFFFFF);
+            // A lighter pane of glass: soft fill, a fine bright rim, light on its top half
+            Render2D.glow(g, sx, y + 1, 20, 20, accent, 0.35f);
+            Render2D.roundRect(g, sx, y + 1, 20, 20, sr, Theme.withAlpha(Theme.mix(0xFFFFFFFF, accent, 0.20f), 0.16f));
+            Render2D.clipRounded(g, sx, y + 1, 20, 20, sr, () -> g.fillGradient(sx, y + 1, sx + 20, y + 10, 0x2EFFFFFF, 0x00FFFFFF));
+            Render2D.roundOutline(g, sx, y + 1, 20, 20, sr, 0x80FFFFFF);
         } else {
-            Render2D.glow(g, sx + 1, y + 2, 18, 18, accent, 0.7f);
-            Render2D.roundRect(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(accent, 0.24f));
-            Render2D.roundOutline(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(accent, 0.85f));
+            Render2D.glow(g, sx + 1, y + 2, 18, 18, accent, 0.5f);
+            Render2D.roundRect(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(accent, 0.20f));
+            Render2D.roundOutline(g, sx + 1, y + 2, 18, 18, sr, Theme.withAlpha(accent, 0.80f));
         }
-        Render2D.roundRect(g, sx + 6, y + 19, 8, 1, 0, accent);
-        // Items
+        // A small accent pill under the picked slot
+        Render2D.smoothCircle(g, sx + 10f, y + 21f, 0.9f, accent, 0.8f);
+        Render2D.roundRect(g, sx + 7, y + 20, 6, 1, 0, Theme.withAlpha(accent, 0.9f));
+        // Items, with a neater stack count
         for (int i = 0; i < 9; i++) {
             ItemStack stack = p.getInventory().getItem(i);
             int ix = x + 3 + i * 20;
-            if (!stack.isEmpty()) {
-                g.item(stack, ix, y + 3);
-                g.itemDecorations(mc.font, stack, ix, y + 3);
-            }
+            if (!stack.isEmpty()) drawItem(g, stack, ix, y + 3);
             if (slotNumbers.getValue()) {
                 g.pose().pushMatrix();
-                g.pose().translate(x + 3 + i * 20, y + 2.5f);
+                g.pose().translate(x + 4 + i * 20, y + 3);
                 g.pose().scale(0.5f, 0.5f);
-                g.text(mc.font, String.valueOf(i + 1), 0, 0, i == sel ? 0xD0FFFFFF : 0x60FFFFFF, false);
+                g.text(mc.font, String.valueOf(i + 1), 0, 0, i == sel ? 0xB0FFFFFF : 0x48FFFFFF, false);
                 g.pose().popMatrix();
             }
         }
@@ -153,9 +148,26 @@ public class Hotbar extends Module {
             boolean left = p.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT;
             int ox = left ? x - 26 : x + 182 + 4;
             panel(g, ox, y, 22, 22, clean ? 11 : r);
-            Render2D.roundRect(g, ox + 2, y + 2, 18, 18, tr, clean ? 0x14FFFFFF : 0x0FFFFFFF);
-            g.item(off, ox + 3, y + 3);
-            g.itemDecorations(mc.font, off, ox + 3, y + 3);
+            drawItem(g, off, ox + 3, y + 3);
+        }
+    }
+
+    /**
+     * An item with its durability bar and cooldown as Minecraft draws them, but the stack count smaller and tucked
+     * into the corner (Minecraft's big "64" covers half the item).
+     */
+    private void drawItem(GuiGraphicsExtractor g, ItemStack stack, int x, int y) {
+        g.item(stack, x, y);
+        int count = stack.getCount();
+        g.itemDecorations(mc.font, count > 1 ? stack.copyWithCount(1) : stack, x, y);
+        if (count > 1) {
+            String c = String.valueOf(count);
+            float sc = 0.75f;
+            g.pose().pushMatrix();
+            g.pose().translate(x + 17 - mc.font.width(c) * sc, y + 16 - 8 * sc);
+            g.pose().scale(sc, sc);
+            g.text(mc.font, c, 0, 0, 0xFFFFFFFF, true);
+            g.pose().popMatrix();
         }
     }
 
