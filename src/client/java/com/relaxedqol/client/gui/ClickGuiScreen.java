@@ -393,6 +393,9 @@ public class ClickGuiScreen extends Screen {
         return h;
     }
 
+    /** The panel drawn on top (the last one used); null = the normal order. */
+    private static ModuleCategory front;
+
     private List<Panel> layout() {
         List<Panel> panels = new ArrayList<>();
         for (ModuleCategory category : ModuleCategory.values()) {
@@ -526,6 +529,16 @@ public class ClickGuiScreen extends Screen {
             if (panels.get(i).category == ModuleCategory.CLIENT) {
                 panels.add(panels.remove(i));
                 break;
+            }
+        }
+        // The panel you last used (clicked, or opened a module's settings in) comes to the front, over anything that
+        // overlaps it - so its settings are never covered by the panel below
+        if (front != null) {
+            for (int i = 0; i < panels.size(); i++) {
+                if (panels.get(i).category == front) {
+                    panels.add(panels.remove(i));
+                    break;
+                }
             }
         }
         return panels;
@@ -1824,6 +1837,10 @@ public class ClickGuiScreen extends Screen {
         if (appMode()) return appClicked(mx, my, button) || super.mouseClicked(event, doubleClick);
 
         List<Panel> panels = layout();
+        // Clicking a panel brings it to the front
+        Panel hitPanel = headerAt(panels, mx, my);
+        if (hitPanel == null) hitPanel = panelAt(panels, mx, my);
+        if (hitPanel != null) front = hitPanel.category;
         if (button == 0) {
             for (int i = panels.size() - 1; i >= 0; i--) {
                 Panel p = panels.get(i);
@@ -1920,6 +1937,7 @@ public class ClickGuiScreen extends Screen {
 
     /** Opens a module's settings and makes sure all of them come into view. */
     private static void expand(Module module) {
+        front = module.getCategory(); // its settings come out on top
         EXPANDED.add(module.getName());
         revealName = module.getName();
         revealUntil = System.currentTimeMillis() + 700;

@@ -7,6 +7,7 @@
 * Hotbar: a cleaner frosted glass bar in Clean Style - faint slots, a light glass selection that slides, neater stack counts
 * Clean Style: liquid glass everywhere - a glossy shine, a bright edge on top and light along the bottom on windows, menus, pop-ups and the hotbar
 * Liquid Glass icons: more depth - a second reflection and a darker band under the shine
+* Panels layout: the panel you use comes to the front, so its settings are never hidden behind another panel
 * Panels layout: folding and unfolding a category slides smoothly
 * What's New: shows once after every update, as soon as the title screen is up
 - Profiles: any profile can be deleted (also the one in use), new profiles start from the default settings, and servers linked to a profile switch every time you join
