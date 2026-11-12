@@ -46,6 +46,14 @@ public abstract class SmoothTextMixin {
         relaxed$snapped = false;
         ((GuiGraphicsExtractor) (Object) this).pose().popMatrix();
     }
+    /** Vanilla Style: the client's text gets Minecraft's usual drop shadow. */
+    @ModifyVariable(require = 0,
+        method = "text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;IIIZ)V",
+        at = @At("HEAD"), argsOnly = true)
+    private boolean relaxed$vanillaShadow(boolean shadow) {
+        return shadow || (SmoothFont.inClientUi() && com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle());
+    }
+
     @ModifyVariable(require = 0,
         method = "text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;IIIZ)V",
         at = @At("HEAD"), argsOnly = true)

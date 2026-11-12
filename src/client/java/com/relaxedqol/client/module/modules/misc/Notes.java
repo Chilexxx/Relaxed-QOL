@@ -60,7 +60,8 @@ public class Notes extends Module implements HudCard {
         }
         int k = openKey.getKey();
         boolean typing = mc.gui.screen() instanceof net.minecraft.client.gui.screens.ChatScreen
-            || (mc.gui.screen() != null && mc.gui.screen().getFocused() instanceof net.minecraft.client.gui.components.EditBox);
+            || (mc.gui.screen() != null && (mc.gui.screen().getFocused() instanceof net.minecraft.client.gui.components.EditBox
+                || mc.gui.screen().getFocused() instanceof net.minecraft.client.gui.components.MultiLineEditBox));
         boolean down = k >= 0 && mc.getWindow() != null && !typing
             && com.mojang.blaze3d.platform.InputConstants.isKeyDown(mc.getWindow(), k);
         if (down && !keyWas && mc.player != null && !(mc.gui.screen() instanceof NotesScreen)) open();
@@ -95,7 +96,7 @@ public class Notes extends Module implements HudCard {
             if (com.relaxedqol.client.gui.ScreenPanelOverlay.coversGui(window.getX() * hs, window.getY() * hs,
                 window.getW() * hs, window.getH() * hs)) return;
         }
-        // Drawn like an Apple Notes widget, in the smooth font
+        // Drawn as a clean notes card, in the smooth font
         com.relaxedqol.client.util.SmoothFont.begin();
         try {
             drawCard(g, font, vw, vh, pinned);
@@ -148,7 +149,8 @@ public class Notes extends Module implements HudCard {
         int marker = lover ? com.relaxedqol.client.gui.LoverFx.CYAN : accent;
         if (lover) {
             Render2D.shadow(g, 0, 0, w, h, 12);
-            Render2D.roundRect(g, 0, 0, w, h, 12, Theme.withAlpha(0xFF141A2E, a));
+            Render2D.roundRect(g, 0, 0, w, h, 12, Theme.withAlpha(0xFF141A2E,
+                com.relaxedqol.client.gui.CleanStyle.on() ? Math.min(a, 0.55f) : a));
             Render2D.roundOutline(g, 0, 0, w, h, 12, 0x24FFFFFF);
             Render2D.icon(g, "heart_soft", pad, (headerH - 9) / 2, 9, com.relaxedqol.client.gui.LoverFx.RED);
             window.crispText(g, font, net.minecraft.network.chat.Component.literal("Notes").withStyle(net.minecraft.ChatFormatting.BOLD),

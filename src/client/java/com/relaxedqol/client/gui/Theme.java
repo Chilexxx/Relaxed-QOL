@@ -58,6 +58,9 @@ public final class Theme {
     public static float SHADOW = 1f;
     /** Animation speed (1 = normal, 0 = no animations: everything changes at once). */
     public static float ANIM = 1f;
+    /** Style Editor: glow around things that are "on" (0..2) and the shine on glass panels (0..2). */
+    public static float GLOW = 1f;
+    public static float SHEEN = 1f;
     /** The surface colour the theme is built from (opaque). */
     public static int SURFACE = 0xFF18191C;
 
@@ -73,6 +76,63 @@ public final class Theme {
         refreshedAt = now;
         ClickGUI gui = gui();
         if (gui == null) return;
+        GLOW = gui.themeGlow().getValue() / 100f;
+        SHEEN = gui.themeSheen().getValue() / 100f;
+        if (VanillaStyle.on() || CleanStyle.on()) {
+            int surface = 0xFF000000 | com.relaxedqol.client.util.Colors.of(gui.themeSurface().getValue());
+            int text = 0xFF000000 | com.relaxedqol.client.util.Colors.of(gui.themeText().getValue());
+            float border = gui.themeBorder().getValue() / 100f;
+            float round = gui.themeRound().getValue() / 100f;
+            ANIM = gui.themeAnim().getValue() / 100f;
+            TEXT = text;
+            SURFACE = surface;
+            WINDOW_BODY = surface;
+            if (VanillaStyle.on()) {
+                // Minecraft's square shapes in the theme's colours: dark see-through panels, a darker title strip
+                PANEL = withAlpha(shade(surface, -0.35f), 0.82f);
+                PANEL_HEADER = withAlpha(shade(surface, -0.70f), 0.88f);
+                SETTINGS_BG = withAlpha(shade(surface, -0.60f), 0.75f);
+                BACKGROUND = 0xC0000000;
+                TRACK = 0xFF000000;
+                BORDER = 0xFF5A5A5A;
+                HAIRLINE = 0xFF3A3A3A;
+                ROW_HOVER = 0x30FFFFFF;
+                PILL = 0x20FFFFFF;
+                TEXT_SECONDARY = mix(0xFF000000, text, 0.90f);
+                TEXT_DIM = mix(0xFF000000, text, 0.68f);
+                TEXT_FAINT = mix(0xFF000000, text, 0.48f);
+                R_CONTROL = 0;
+                R_ROW = 0;
+                R_SURFACE = 0;
+                SHADOW = 0f;
+                return;
+            }
+            // Clean Style: frosted glass in the theme's colours, tinted with the accent (Glass Tint %)
+            float tint = com.relaxedqol.client.module.modules.client.ClickGUI.glassTint();
+            int accent = accent(0);
+            int base = mix(surface, accent, tint * 0.6f);
+            float alpha = Math.max(0.30f, Math.min(0.95f, 0.35f + opacity() * 0.5f));
+            // Liquid Glass: clearer glass than Clean Style
+            if (CleanStyle.liquid()) alpha = Math.max(0.24f, alpha - 0.10f);
+            PANEL = withAlpha(base, alpha);
+            PANEL_HEADER = withAlpha(shade(base, -0.25f), Math.min(1f, alpha + 0.08f));
+            SETTINGS_BG = withAlpha(shade(base, -0.35f), alpha * 0.6f);
+            BACKGROUND = 0x40000000;
+            TRACK = shade(base, 0.12f);
+            BORDER = withAlpha(mix(0xFFFFFFFF, accent, tint), Math.min(0.7f, 0.12f + border));
+            HAIRLINE = withAlpha(0xFFFFFFFF, Math.min(0.4f, 0.08f + border * 0.5f));
+            ROW_HOVER = 0x14FFFFFF;
+            PILL = 0x1FFFFFFF;
+            // Brighter greys than the normal theme: the panels are see-through, the text must stay readable
+            TEXT_SECONDARY = mix(surface, text, 0.88f);
+            TEXT_DIM = mix(surface, text, 0.74f);
+            TEXT_FAINT = mix(surface, text, 0.58f);
+            R_CONTROL = Math.round(4 * round);
+            R_ROW = Math.round(6 * round);
+            R_SURFACE = Math.round(10 * round);
+            SHADOW = gui.themeShadow().getValue() / 100f * 0.6f;
+            return;
+        }
         try {
             int surface = 0xFF000000 | com.relaxedqol.client.util.Colors.of(gui.themeSurface().getValue());
             int text = 0xFF000000 | com.relaxedqol.client.util.Colors.of(gui.themeText().getValue());
@@ -101,6 +161,12 @@ public final class Theme {
         } catch (RuntimeException e) {
             // keep the last good values
         }
+    }
+
+    /** Works the tokens out again right now (the Style Editor's live preview). */
+    public static void refreshNow() {
+        refreshedAt = 0;
+        refresh();
     }
 
     /** Lines are light on a dark surface and dark on a light one. */
@@ -144,28 +210,41 @@ public final class Theme {
         return Math.max(0.55f, Math.min(1f, 0.93f + (opacity() - 0.45f) * 0.7f));
     }
 
+    /** Vanilla or Clean Style is on: LoverFella Mode's colours then take the style's see-through-ness. */
+    private static boolean styled() {
+        return VanillaStyle.on() || CleanStyle.on();
+    }
+
+    /** The alpha of a colour, 0..1. */
+    private static float alphaOf(int color) {
+        return ((color >>> 24) & 0xFF) / 255f;
+    }
+
     /** See-through panel background. */
     public static int panel() {
-        if (LoverFx.on()) return withAlpha(0xFF0D1A3A, Math.max(0.55f, opacity()));
+        if (LoverFx.on()) return withAlpha(0xFF0D1A3A, styled() ? alphaOf(PANEL) : Math.max(0.55f, opacity()));
+        if (VanillaStyle.on() || CleanStyle.on()) return PANEL;
         return withAlpha(shade(SURFACE, -0.04f), opacity());
     }
 
     /** Panel title bar, a little more solid than the body. */
     public static int header() {
-        if (LoverFx.on()) return withAlpha(0xFF15295C, Math.min(1f, Math.max(0.55f, opacity()) + 0.2f));
+        if (LoverFx.on()) return withAlpha(0xFF15295C, styled() ? alphaOf(PANEL_HEADER) : Math.min(1f, Math.max(0.55f, opacity()) + 0.2f));
+        if (VanillaStyle.on() || CleanStyle.on()) return PANEL_HEADER;
         return withAlpha(shade(SURFACE, 0.02f), Math.min(1f, opacity() + 0.18f));
     }
 
     /** Background behind expanded settings. */
     public static int settingsBg() {
-        if (LoverFx.on()) return withAlpha(0xFF071230, Math.min(1f, Math.max(0.55f, opacity()) * 0.85f));
+        if (LoverFx.on()) return withAlpha(0xFF071230, styled() ? alphaOf(SETTINGS_BG) : Math.min(1f, Math.max(0.55f, opacity()) * 0.85f));
+        if (VanillaStyle.on() || CleanStyle.on()) return SETTINGS_BG;
         return withAlpha(shade(SURFACE, -0.30f), Math.min(1f, opacity() * 0.8f));
     }
 
     /** Accent colour; offset shifts the hue in Rainbow mode (used for gradients down lists). */
     public static int accent(int offset) {
         refresh();
-        // LoverFella Mode - heart red and mustache cyan
+        // LoverFella Mode - heart red and mustache cyan (in every style)
         if (LoverFx.on()) return LoverFx.accent(offset);
         String mode = "Violet";
         if (RelaxedQolClient.moduleManager != null) {

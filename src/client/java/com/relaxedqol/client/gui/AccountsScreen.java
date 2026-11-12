@@ -114,8 +114,8 @@ public class AccountsScreen extends WindowScreen {
     /** Your head, name and session status. */
     private void drawHeader(GuiGraphicsExtractor g, int x, int y, int w, int mouseX, int mouseY) {
         String me = Accounts.currentName();
-        Render2D.roundRect(g, x, y + 2, 26, 26, 6, 0x1AFFFFFF);
-        Render2D.roundOutline(g, x, y + 2, 26, 26, 6, 0x24FFFFFF);
+        Render2D.roundRect(g, x, y + 2, 26, 26, Theme.R_CONTROL, 0x1AFFFFFF);
+        Render2D.roundOutline(g, x, y + 2, 26, 26, Theme.R_CONTROL, 0x24FFFFFF);
         if (!SkinFaces.draw(g, me, x + 5, y + 7, 16, 0xFFFFFFFF)) g.fill(x + 5, y + 7, x + 21, y + 23, 0xFF3B3B4A);
 
         String renew = Accounts.busy() && !Accounts.loginActive() ? "Renewing" + dots() : "Renew";
@@ -156,8 +156,8 @@ public class AccountsScreen extends WindowScreen {
         if (cy + ROW >= top && cy <= top + h) {
             boolean over = clickable && mouseX >= x && mouseX < x + cw && mouseY >= Math.max(cy, top) && mouseY < Math.min(cy + ROW, top + h);
             float hv = anim.smooth("addRow", over ? 1f : 0f, 18f);
-            Render2D.roundRect(g, x, cy, cw, ROW, 7, a(Theme.mix(0x08FFFFFF, Theme.withAlpha(Theme.accent(), 0.12f), hv)));
-            Render2D.roundOutline(g, x, cy, cw, ROW, 7, a(Theme.mix(0x1FFFFFFF, Theme.withAlpha(Theme.accent(), 0.7f), hv)));
+            Render2D.roundRect(g, x, cy, cw, ROW, Theme.R_ROW, a(Theme.mix(0x08FFFFFF, Theme.withAlpha(Theme.accent(), 0.12f), hv)));
+            Render2D.roundOutline(g, x, cy, cw, ROW, Theme.R_ROW, a(Theme.mix(0x1FFFFFFF, Theme.withAlpha(Theme.accent(), 0.7f), hv)));
             Render2D.roundRect(g, x + 7, cy + 5, 20, 20, 10, a(Theme.withAlpha(Theme.accent(), 0.16f + 0.2f * hv)));
             Render2D.icon(g, "plus", x + 12, cy + 10, 10, a(Theme.mix(Theme.accent(), 0xFFFFFFFF, 0.3f * hv)));
             g.text(font, Component.literal("Add account").withStyle(ChatFormatting.BOLD), x + 34, cy + 6, a(Theme.TEXT), false);
@@ -175,9 +175,9 @@ public class AccountsScreen extends WindowScreen {
         float hv = anim.smooth(acc.uuid, over ? 1f : 0f, 18f);
         int fill = inUse ? Theme.withAlpha(Theme.accent(), 0.10f) : Theme.mix(0x0DFFFFFF, 0x18FFFFFF, hv);
         int edge = inUse ? Theme.withAlpha(Theme.accent(), 0.45f) : Theme.mix(0x1FFFFFFF, 0x30FFFFFF, hv);
-        Render2D.roundRect(g, x, cy, cw, ROW, 7, a(fill));
-        Render2D.roundOutline(g, x, cy, cw, ROW, 7, a(edge));
-        Render2D.roundRect(g, x + 6, cy + 5, 20, 20, 5, a(0x1AFFFFFF));
+        Render2D.roundRect(g, x, cy, cw, ROW, Theme.R_ROW, a(fill));
+        Render2D.roundOutline(g, x, cy, cw, ROW, Theme.R_ROW, a(edge));
+        Render2D.roundRect(g, x + 6, cy + 5, 20, 20, Theme.R_CONTROL, a(0x1AFFFFFF));
         if (alpha > 0.6f && !SkinFaces.draw(g, acc.name, x + 8, cy + 7, 16, 0xFFFFFFFF)) g.fill(x + 8, cy + 7, x + 24, cy + 23, a(0xFF3B3B4A));
 
         // right side: badge / Switch chip, remove
@@ -185,14 +185,14 @@ public class AccountsScreen extends WindowScreen {
         if (inUse) {
             int bw = font.width("In use") + 12;
             right -= bw;
-            Render2D.roundRect(g, right, cy + 9, bw, 12, 6, a(Theme.withAlpha(Theme.SUCCESS, 0.18f)));
-            Render2D.roundOutline(g, right, cy + 9, bw, 12, 6, a(Theme.withAlpha(Theme.SUCCESS, 0.45f)));
+            Render2D.roundRect(g, right, cy + 9, bw, 12, Theme.R_CONTROL, a(Theme.withAlpha(Theme.SUCCESS, 0.18f)));
+            Render2D.roundOutline(g, right, cy + 9, bw, 12, Theme.R_CONTROL, a(Theme.withAlpha(Theme.SUCCESS, 0.45f)));
             g.centeredText(font, "In use", right + bw / 2, cy + 11, a(Theme.mix(Theme.SUCCESS, 0xFFFFFFFF, 0.35f)));
         } else if (!world && hv > 0.05f) {
             String label = acc.needsLogin ? "Sign in" : "Switch";
             int bw = font.width(label) + 14;
             right -= bw;
-            Render2D.roundRect(g, right, cy + 9, bw, 12, 6, a(Theme.withAlpha(Theme.accent(), 0.85f * hv)));
+            Render2D.roundRect(g, right, cy + 9, bw, 12, Theme.R_CONTROL, a(Theme.withAlpha(Theme.accent(), 0.85f * hv)));
             g.centeredText(font, label, right + bw / 2, cy + 11, a(Theme.fade(0xFFFFFFFF, Math.max(0.06f, hv))));
         }
         boolean asking = confirmRemove != null && confirmRemove.uuid.equals(acc.uuid);
@@ -256,8 +256,8 @@ public class AccountsScreen extends WindowScreen {
         boolean copied = System.currentTimeMillis() - copiedAt < 1500;
         for (int i = 0; i < c.length(); i++) {
             int px = kx + i * (cap + gapC);
-            Render2D.roundRect(g, px, y, cap, 18, 4, a(Theme.mix(0x1AFFFFFF, 0x26FFFFFF, hv)));
-            Render2D.roundOutline(g, px, y, cap, 18, 4, a(copied ? Theme.withAlpha(Theme.SUCCESS, 0.8f) : Theme.mix(0x30FFFFFF, Theme.withAlpha(Theme.accent(), 0.8f), hv)));
+            Render2D.roundRect(g, px, y, cap, 18, Theme.R_CONTROL, a(Theme.mix(0x1AFFFFFF, 0x26FFFFFF, hv)));
+            Render2D.roundOutline(g, px, y, cap, 18, Theme.R_CONTROL, a(copied ? Theme.withAlpha(Theme.SUCCESS, 0.8f) : Theme.mix(0x30FFFFFF, Theme.withAlpha(Theme.accent(), 0.8f), hv)));
             g.fill(px + 2, y + 16, px + cap - 2, y + 17, a(0x40000000));
             g.centeredText(font, Component.literal(String.valueOf(c.charAt(i))).withStyle(ChatFormatting.BOLD), px + cap / 2, y + 5,
                 a(expired ? Theme.TEXT_FAINT : 0xFFFFFFFF));
@@ -303,10 +303,10 @@ public class AccountsScreen extends WindowScreen {
 
     /** The sign-in card with its title row (accent dot, title, Cancel); returns where its content starts. */
     private int cardHeader(GuiGraphicsExtractor g, int x, int top, int w, int h, String title, int mouseX, int mouseY, boolean clickable) {
-        Render2D.roundRect(g, x, top, w, h, 7, a(0x12FFFFFF));
-        Render2D.roundOutline(g, x, top, w, h, 7, a(0x1FFFFFFF));
+        Render2D.roundRect(g, x, top, w, h, Theme.R_ROW, a(0x12FFFFFF));
+        Render2D.roundOutline(g, x, top, w, h, Theme.R_ROW, a(0x1FFFFFFF));
         Render2D.roundRect(g, x + 8, top + 7, 4, 4, 2, a(Theme.accent()));
-        g.text(font, title, x + 17, top + 5, a(0xFFE4E4EC), false);
+        g.text(font, title, x + 17, top + 5, a(Theme.TEXT), false);
         int cw = font.width("Cancel") + 12;
         button(g, "cancel", "Cancel", x + w - 6 - cw, top + 3, cw, 12, false, mouseX, mouseY, clickable);
         g.fill(x + 8, top + 18, x + w - 8, top + 19, a(0x14FFFFFF));
@@ -326,13 +326,21 @@ public class AccountsScreen extends WindowScreen {
                         int mouseX, int mouseY, boolean clickable) {
         boolean over = clickable && mouseX >= bx && mouseX < bx + bw && mouseY >= by && mouseY < by + bh;
         float hv = anim.smooth("btn" + id, over ? 1f : 0f, 18f);
+        if (VanillaStyle.on()) {
+            // Minecraft's own button (yellow text for the main one)
+            VanillaStyle.button(g, font, label, bx, by, bw, bh, over, primary, true);
+            if (clickable) addRect(bx, by, bw, bh, id, null);
+            return;
+        }
         if (primary) {
-            Render2D.roundRect(g, bx, by, bw, bh, Theme.R_CONTROL, a(Theme.withAlpha(Theme.accent(), 0.7f + 0.25f * hv)));
+            // The main button: a calm accent tint with an accent edge (like every lit button in the client)
+            Render2D.roundRect(g, bx, by, bw, bh, Theme.R_CONTROL, a(Theme.withAlpha(Theme.accent(), 0.25f + 0.12f * hv)));
+            Render2D.roundOutline(g, bx, by, bw, bh, Theme.R_CONTROL, a(Theme.withAlpha(Theme.accent(), 0.75f + 0.2f * hv)));
         } else {
             Render2D.roundRect(g, bx, by, bw, bh, Theme.R_CONTROL, a(Theme.mix(Theme.PILL, 0x22FFFFFF, hv)));
             Render2D.roundOutline(g, bx, by, bw, bh, Theme.R_CONTROL, a(Theme.mix(Theme.BORDER, 0x4DFFFFFF, hv)));
         }
-        int tc = primary ? 0xFFFFFFFF : Theme.mix(Theme.TEXT_SECONDARY, Theme.TEXT, hv);
+        int tc = primary ? Theme.mix(Theme.accent(), 0xFFFFFFFF, 0.6f) : Theme.mix(Theme.TEXT_SECONDARY, Theme.TEXT, hv);
         g.centeredText(font, label, bx + bw / 2, by + (bh - 8) / 2, a(tc));
         if (clickable) addRect(bx, by, bw, bh, id, null);
     }

@@ -8,6 +8,7 @@
 		"ChatComponentMixin",
 		"SkyRendererMixin",
 		"GuiGraphicsExtractorMixin",
+		"ButtonSpritesMixin",
 		"LocatorBarRendererMixin",
 		"LocatorDotsMixin",
 		"ClearViewEffectsMixin",

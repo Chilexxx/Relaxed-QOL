@@ -436,9 +436,16 @@ public class HudEditorScreen extends Screen {
         int py = y + 8;
         int pw = w - 16;
         int ph = h - 16;
+        com.relaxedqol.client.module.modules.client.ClickGUI look = com.relaxedqol.client.RelaxedQolClient.moduleManager == null ? null
+            : com.relaxedqol.client.RelaxedQolClient.moduleManager.getModule(com.relaxedqol.client.module.modules.client.ClickGUI.class);
+        if (look != null && !look.windowLayout()) {
+            drawPanelPreview(g, px, py, pw, ph, accent);
+            return;
+        }
         Render2D.shadow(g, px, py, pw, ph, Theme.R_SURFACE);
-        Render2D.roundRect(g, px, py, pw, ph, Theme.R_SURFACE, Theme.withAlpha(Theme.WINDOW_BODY, Theme.windowAlpha()));
-        Render2D.roundRectTop(g, px, py, pw, 16, Theme.R_SURFACE, 0x08FFFFFF);
+        // The same colours as the real menu window (theme, style and LoverFella Mode)
+        Render2D.roundRect(g, px, py, pw, ph, Theme.R_SURFACE, Theme.panel());
+        Render2D.roundRectTop(g, px, py, pw, 16, Theme.R_SURFACE, Theme.header());
         g.fill(px + 1, py + 15, px + pw - 1, py + 16, Theme.HAIRLINE);
         Render2D.roundOutline(g, px, py, pw, ph, Theme.R_SURFACE, Theme.BORDER);
         CrispText.text(g, font, Component.literal("Preview").withStyle(net.minecraft.ChatFormatting.BOLD), px + 8, py + 4, Theme.TEXT);
@@ -470,6 +477,51 @@ public class HudEditorScreen extends Screen {
         Render2D.roundRect(g, px + 10 + bw, ry, bw, 13, Theme.R_CONTROL, 0x0FFFFFFF);
         Render2D.roundOutline(g, px + 10 + bw, ry, bw, 13, Theme.R_CONTROL, Theme.BORDER);
         CrispText.centered(g, font, "Cancel", px + 10 + bw + bw / 2, ry + 3, Theme.TEXT_SECONDARY);
+    }
+
+    /**
+     * The preview for the Panels menu layout: one category panel - its header bar, a module that is on with its
+     * settings open (a slider and a search box on the settings background) and one that is off.
+     */
+    private void drawPanelPreview(GuiGraphicsExtractor g, int px, int py, int pw, int ph, int accent) {
+        int w = Math.min(pw, 150);
+        int x = px + (pw - w) / 2;
+        int headerH = 16;
+        Render2D.shadow(g, x, py, w, ph, Theme.R_SURFACE);
+        Render2D.roundRect(g, x, py, w, ph, Theme.R_SURFACE, Theme.panel());
+        Render2D.roundRectTop(g, x, py, w, headerH, Theme.R_SURFACE, Theme.header());
+        Render2D.headerSheen(g, x, py, w, headerH, Theme.R_SURFACE, accent);
+        Render2D.headerLine(g, x, py + headerH - 1, w, accent);
+        if (VanillaStyle.on()) VanillaStyle.bevel(g, x, py, w, ph);
+        else Render2D.roundOutline(g, x, py, w, ph, Theme.R_SURFACE, Theme.BORDER);
+        Render2D.icon(g, "cat_render", x + 6, py + 4, 8, accent);
+        CrispText.text(g, font, Component.literal("Render").withStyle(net.minecraft.ChatFormatting.BOLD), x + 18, py + 4, Theme.TEXT);
+        CrispText.text(g, font, "2", x + w - 12, py + 4, Theme.TEXT_FAINT);
+        // A module that is on (its settings open under it)
+        int ry = py + headerH + 3;
+        int rw = w - 8;
+        Render2D.roundRect(g, x + 4, ry, rw, 14, Theme.R_ROW, Theme.withAlpha(accent, 0.18f));
+        Render2D.roundRect(g, x + 6, ry + 4, 2, 6, 1, accent);
+        CrispText.text(g, font, "Fullbright", x + 12, ry + 3, Theme.TEXT);
+        Render2D.toggleSwitch(g, x + 4 + rw - 20, ry + 3, 1f, accent);
+        ry += 16;
+        int sh = 34;
+        Render2D.roundRect(g, x + 4, ry, rw, sh, Theme.R_ROW, Theme.settingsBg());
+        CrispText.text(g, font, "Brightness", x + 10, ry + 3, Theme.TEXT_DIM);
+        CrispText.text(g, font, "60", x + 4 + rw - 6 - CrispText.width(font, "60"), ry + 3, Theme.TEXT);
+        Render2D.slider(g, x + 10, ry + 15, rw - 12, 0.6f, accent, false);
+        int fy = ry + 21;
+        if (VanillaStyle.on()) {
+            VanillaStyle.box(g, x + 8, fy, rw - 8, 11, false);
+        } else {
+            Render2D.roundRect(g, x + 8, fy, rw - 8, 11, Theme.R_CONTROL, 0x33000000);
+            Render2D.roundOutline(g, x + 8, fy, rw - 8, 11, Theme.R_CONTROL, Theme.HAIRLINE);
+        }
+        CrispText.text(g, font, "Search…", x + 12, fy + 2, Theme.TEXT_FAINT);
+        ry += sh + 2;
+        // A module that is off
+        CrispText.text(g, font, "Zoom", x + 12, ry + 3, Theme.TEXT_DIM);
+        Render2D.toggleSwitch(g, x + 4 + rw - 20, ry + 3, 0f, accent);
     }
 
     // ------------------------------------------------------------------ hit testing

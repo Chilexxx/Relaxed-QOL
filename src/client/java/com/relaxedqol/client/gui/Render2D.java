@@ -26,6 +26,7 @@ public final class Render2D {
 
     /** Radius that fits the box and has a sprite. */
     private static int fit(int radius, int w, int h) {
+        if (VanillaStyle.on()) return 0; // square, like Minecraft
         return Math.max(0, Math.min(Math.min(radius, MAX_SPRITE_R), Math.min(w, h) / 2));
     }
 
@@ -49,7 +50,7 @@ public final class Render2D {
     /** Like roundRect but only the top corners are rounded (the bottom edge is square). */
     public static void roundRectTop(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
         if (w <= 0 || h <= 0) return;
-        int r = Math.min(radius, Math.min(MAX_SPRITE_R, w / 2));
+        int r = VanillaStyle.on() ? 0 : Math.min(radius, Math.min(MAX_SPRITE_R, w / 2));
         if (r < 2) {
             g.fill(x, y, x + w, y + h, color);
             return;
@@ -63,7 +64,7 @@ public final class Render2D {
     /** Like roundRect but only the bottom corners are rounded (the top edge is square). */
     public static void roundRectBottom(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
         if (w <= 0 || h <= 0) return;
-        int r = Math.min(radius, Math.min(MAX_SPRITE_R, w / 2));
+        int r = VanillaStyle.on() ? 0 : Math.min(radius, Math.min(MAX_SPRITE_R, w / 2));
         if (r < 2) {
             g.fill(x, y, x + w, y + h, color);
             return;
@@ -97,6 +98,12 @@ public final class Render2D {
 
     /** The same, faded to {@code alpha} (0..1) while it appears. */
     public static void popup(GuiGraphicsExtractor g, int x, int y, int w, int h, float alpha) {
+        if (VanillaStyle.on()) {
+            // Like Minecraft's tooltips: near-black body with the bevel
+            g.fill(x, y, x + w, y + h, Theme.fade(0xF0100010, alpha));
+            VanillaStyle.bevel(g, x, y, w, h);
+            return;
+        }
         if (alpha >= 1f) shadow(g, x, y, w, h, Theme.R_ROW);
         roundRect(g, x, y, w, h, Theme.R_ROW, Theme.fade(POPUP_BODY, alpha));
         roundOutline(g, x, y, w, h, Theme.R_ROW, Theme.fade(Theme.BORDER, alpha));
@@ -202,6 +209,21 @@ public final class Render2D {
 
     /** iOS-style switch. progress 0 = off, 1 = on (animated by the caller). */
     public static void toggleSwitch(GuiGraphicsExtractor g, int x, int y, float progress, int accent) {
+        if (VanillaStyle.on()) {
+            VanillaStyle.toggle(g, x, y, progress);
+            return;
+        }
+        // Clean Style: a fully rounded pill - grey when off, the accent colour when on - with a smooth round white knob
+        // that slides across (no hard edges at this small size)
+        glow(g, x, y, 16, 8, accent, progress);
+        if (CleanStyle.on()) {
+            int w = 16;
+            int h = 8;
+            roundRect(g, x, y, w, h, 4, Theme.mix(CleanStyle.SWITCH_OFF_TRACK, accent, progress));
+            float cx = x + 4f + progress * (w - 8);
+            smoothCircle(g, cx, y + 4f, 2.9f, Theme.mix(0xFFC9CBD0, 0xFFFFFFFF, progress), 1f);
+            return;
+        }
         int w = 16;
         int h = 8;
         roundRect(g, x, y, w, h, 4, Theme.mix(Theme.TRACK, accent, progress));
@@ -209,12 +231,38 @@ public final class Render2D {
         roundRect(g, knobX, y + 1, 6, 6, 3, Theme.mix(0xFFB8B8C8, 0xFFFFFFFF, progress));
     }
 
+    /**
+     * A soft halo around something that is "on" (a switch, the hotbar selection), as strong as the Style Editor's
+     * Glow % and how far it is switched on (0..1). Nothing at Glow 0.
+     */
+    public static void glow(GuiGraphicsExtractor g, int x, int y, int w, int h, int accent, float on) {
+        if (Theme.GLOW <= 0.01f || on <= 0.01f || VanillaStyle.on()) return;
+        float a = Math.min(0.5f, 0.14f * Theme.GLOW) * on;
+        int r = Math.min(h / 2 + 2, Theme.R_CONTROL + 3);
+        roundRect(g, x - 2, y - 2, w + 4, h + 4, r, Theme.withAlpha(accent, a * 0.5f));
+        roundRect(g, x - 1, y - 1, w + 2, h + 2, Math.max(0, r - 1), Theme.withAlpha(accent, a));
+    }
+
     /** Slider track with filled part and knob. fraction 0..1. */
     public static void slider(GuiGraphicsExtractor g, int x, int y, int w, float fraction, int accent, boolean active) {
+        if (VanillaStyle.on()) {
+            VanillaStyle.slider(g, x, y, w, fraction, active);
+            return;
+        }
+        if (CleanStyle.on()) {
+            // A thin dark line and a round knob in the accent colour, no coloured fill
+            g.fill(x, y + 1, x + w, y + 2, 0xFF0E0F11);
+            g.fill(x, y + 2, x + w, y + 3, 0x40FFFFFF);
+            float f = Math.max(0, Math.min(1, fraction));
+            if (Theme.GLOW > 0.01f) smoothCircle(g, x + f * w, y + 1.5f, 6.5f, Theme.withAlpha(accent, Math.min(0.45f, 0.16f * Theme.GLOW)), 3f);
+            smoothCircle(g, x + f * w, y + 1.5f, active ? 4f : 3.5f, accent, 1f);
+            return;
+        }
         roundRect(g, x, y, w, 3, 1, Theme.TRACK);
         int filled = Math.round(w * Math.max(0, Math.min(1, fraction)));
         if (filled > 0) roundRect(g, x, y, filled, 3, 1, accent);
         int knob = x + filled - 2;
+        if (Theme.GLOW > 0.01f) roundRect(g, knob - 2, y - 4, 9, 11, 4, Theme.withAlpha(accent, Math.min(0.4f, 0.12f * Theme.GLOW)));
         roundRect(g, knob, y - 2, 5, 7, 2, active ? 0xFFFFFFFF : 0xFFE4E4EE);
     }
 

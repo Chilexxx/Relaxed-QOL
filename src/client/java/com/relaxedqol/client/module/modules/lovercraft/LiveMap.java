@@ -836,7 +836,6 @@ public class LiveMap extends com.relaxedqol.client.module.ActionModule {
         ChatUtil.send((ok ? "§aLiveMap: §f" : "§cLiveMap: §f") + status);
         if (!pageResult.isEmpty()) ChatUtil.send("§7  " + pageResult);
         ChatUtil.send("§7  zones on the map: §f" + zoneCenters.size() + (zonesUrl.isEmpty() ? " §8(no zone markers found)" : ""));
-        ChatUtil.send("§7  addresses tried: §f" + tried + (usedUrl.isEmpty() ? "" : "§7, data from §f" + usedUrl));
         if (!ok && !lastError.isEmpty()) ChatUtil.send("§7  last error: §f" + lastError);
         String w = myWorld();
         String sb = scoreboardZone();

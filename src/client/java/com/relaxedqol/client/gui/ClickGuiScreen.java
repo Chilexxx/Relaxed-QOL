@@ -203,12 +203,30 @@ public class ClickGuiScreen extends Screen {
     public ClickGuiScreen(Screen parent) {
         super(Component.literal("Relaxed QOL"));
         this.parent = parent;
+        // A freshly opened menu starts with every module folded (Panels layout) - modules opened last time stay
+        // open only while the menu is open (windows opened from it come back to this same menu)
+        EXPANDED.clear();
+        KEYS.clear();
+    }
+
+    /**
+     * The client menu to open (Vanilla Style only changes how it looks). Every place that opens the menu goes
+     * through here.
+     */
+    public static Screen create(Screen parent) {
+        return new ClickGuiScreen(parent);
+    }
+
+    /** Vanilla Style was switched: the open menu just redraws in the new look (nothing to swap). */
+    public static void styleChanged() {
+        Theme.refresh();
     }
 
     /** Opens the menu with the Settings panel shown and expanded. */
-    public static ClickGuiScreen settingsScreen(Screen parent) {
+    public static Screen settingsScreen(Screen parent) {
+        ClickGuiScreen screen = new ClickGuiScreen(parent);
         openSettings();
-        return new ClickGuiScreen(parent);
+        return screen;
     }
 
     /** Shows the Settings panel in the menu that is already open. */
@@ -363,6 +381,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     private static int heightOf(Setting<?> setting) {
+        if (setting instanceof com.relaxedqol.client.setting.PreviewSetting preview) return preview.height();
         if (setting.isNumber()) return NUMBER_H;
         if (setting.isAction()) return ACTION_H;
         return ROW_H;
@@ -373,6 +392,9 @@ public class ClickGuiScreen extends Screen {
         for (Setting<?> setting : module.getSettings()) if (!setting.isHidden()) h += heightOf(setting);
         return h;
     }
+
+    /** The panel drawn on top (the last one used); null = the normal order. */
+    private static ModuleCategory front;
 
     private List<Panel> layout() {
         List<Panel> panels = new ArrayList<>();
@@ -406,7 +428,8 @@ public class ClickGuiScreen extends Screen {
             for (Module module : modules) {
                 if (module.isEnabled()) panel.enabledCount++;
             }
-            if (COLLAPSED.contains(category) && search.isEmpty()) {
+            // Folded - once its folding animation has finished (until then it is laid out open and drawn shrinking)
+            if (COLLAPSED.contains(category) && search.isEmpty() && FOLD.getOrDefault(category, 0f) <= 0.001f) {
                 panel.collapsed = true;
                 panels.add(panel);
                 continue;
@@ -506,6 +529,16 @@ public class ClickGuiScreen extends Screen {
             if (panels.get(i).category == ModuleCategory.CLIENT) {
                 panels.add(panels.remove(i));
                 break;
+            }
+        }
+        // The panel you last used (clicked, or opened a module's settings in) comes to the front, over anything that
+        // overlaps it - so its settings are never covered by the panel below
+        if (front != null) {
+            for (int i = 0; i < panels.size(); i++) {
+                if (panels.get(i).category == front) {
+                    panels.add(panels.remove(i));
+                    break;
+                }
             }
         }
         return panels;
@@ -634,6 +667,8 @@ public class ClickGuiScreen extends Screen {
         ClickGUI gui = settings();
         if ((gui == null || gui.useBlur()) && minecraft.options.getMenuBackgroundBlurriness() >= 1) {
             graphics.blurBeforeThisStratum();
+        } else {
+            CleanStyle.blurBehind(graphics); // Liquid Glass: the world blurred behind the glass
         }
         graphics.fillGradient(0, 0, width, height, 0x14000008, 0x30000010);
     }
@@ -785,8 +820,32 @@ public class ClickGuiScreen extends Screen {
         return overCard && !overMenu(mx, my);
     }
 
+    /** How far each panel is unfolded (1 = open, 0 = folded), eased towards its target every frame. */
+    private static final java.util.Map<ModuleCategory, Float> FOLD = new java.util.EnumMap<>(ModuleCategory.class);
+    private static final java.util.Map<ModuleCategory, Long> FOLD_AT = new java.util.EnumMap<>(ModuleCategory.class);
+
+    /** Moves a panel's fold towards open / folded (about 180 ms, the theme's Animation % applies) and returns it. */
+    private static float foldStep(ModuleCategory c, boolean open) {
+        long now = System.nanoTime();
+        Long last = FOLD_AT.put(c, now);
+        float cur = FOLD.getOrDefault(c, open ? 1f : 0f);
+        float ms = Theme.animMs(180f);
+        float dt = last == null ? 1f : (now - last) / 1_000_000f;
+        float step = ms <= 0 ? 1f : Math.min(1f, dt / ms);
+        cur = open ? Math.min(1f, cur + step) : Math.max(0f, cur - step);
+        FOLD.put(c, cur);
+        return cur;
+    }
+
     private void drawPanel(GuiGraphicsExtractor g, Panel panel, int index, Row hoverRow, int mx, int my) {
         int accent = Theme.accent(index * 3);
+        // Folding / unfolding: the body slides shut / open (eased), the rows clipped to what is still showing
+        float open = foldStep(panel.category, !COLLAPSED.contains(panel.category) || !search.isEmpty());
+        if (!panel.collapsed && open < 0.999f) {
+            float e = 1f - (1f - open) * (1f - open) * (1f - open);
+            panel.bodyH = Math.round(panel.bodyH * e);
+            if (panel.bodyH < 3) panel.collapsed = true;
+        }
         boolean collapsed = panel.collapsed;
         int totalH = HEADER_H + (collapsed ? 0 : panel.bodyH);
 
@@ -814,6 +873,7 @@ public class ClickGuiScreen extends Screen {
         int bodyTop = panel.bodyY;
         int bodyBottom = panel.bodyY + panel.bodyH;
         Render2D.roundRectBottom(g, panel.x, bodyTop, panel.w, panel.bodyH, RADIUS, Theme.panel());
+        if (CleanStyle.on()) CleanStyle.gloss(g, panel.x, panel.y, panel.w, totalH, RADIUS);
         g.enableScissor(panel.x, bodyTop, panel.x + panel.w, bodyBottom - 1);
 
         int lane = panel.contentH > panel.bodyH ? SCROLL_LANE : 0;
@@ -837,7 +897,8 @@ public class ClickGuiScreen extends Screen {
             g.disableScissor();
         }
         g.disableScissor();
-        Render2D.roundOutline(g, panel.x, panel.y, panel.w, totalH, RADIUS, Theme.BORDER);
+        if (VanillaStyle.on()) VanillaStyle.bevel(g, panel.x, panel.y, panel.w, totalH);
+        else Render2D.roundOutline(g, panel.x, panel.y, panel.w, totalH, RADIUS, Theme.BORDER);
         // Resize grip in the bottom-right corner
         int gx = panel.x + panel.w - 5;
         int gy = panel.bodyY + panel.bodyH - 5;
@@ -958,11 +1019,13 @@ public class ClickGuiScreen extends Screen {
         boolean bound = module.getKey() >= 0;
         String bind = module == binding ? "\u2026" : (bound ? KeyUtil.name(module.getKey()) : "Bind");
         if (bound || module == binding || hover) {
-            int capFill = module == binding ? Theme.withAlpha(accent, 0.35f) : overBind ? 0x24FFFFFF : Theme.PILL;
-            Render2D.roundRect(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL, capFill);
-            Render2D.roundOutline(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL,
-                module == binding ? Theme.withAlpha(accent, 0.8f) : overBind ? 0x40FFFFFF : Theme.HAIRLINE);
-            int capText = module == binding || overBind ? Theme.TEXT : bound ? Theme.TEXT_SECONDARY : Theme.TEXT_FAINT;
+            int capFill = module == binding ? Theme.withAlpha(accent, 0.35f) : overBind ? 0x40FFFFFF : bound ? KEYCAP_FILL : Theme.PILL;
+            if (!vanillaBox(g, p[0], y + 2, p[1], h - 4, module == binding || overBind)) {
+                Render2D.roundRect(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL, capFill);
+                Render2D.roundOutline(g, p[0], y + 2, p[1], h - 4, Theme.R_CONTROL,
+                    module == binding ? Theme.withAlpha(accent, 0.8f) : overBind ? 0x73FFFFFF : bound ? KEYCAP_EDGE : Theme.HAIRLINE);
+            }
+            int capText = module == binding || overBind || bound ? Theme.TEXT : Theme.TEXT_FAINT;
             CrispText.centered(g, font, bind, p[0] + p[1] / 2, y + 4, capText);
         }
 
@@ -985,12 +1048,36 @@ public class ClickGuiScreen extends Screen {
      * One setting row. the name is shortened so it never runs into the value on the right (long names in a
      * narrow panel used to overlap their value), and colour settings are a swatch that opens the colour picker.
      */
+    /** A bound key shown next to a module: a dark box with a clear edge, so the key is easy to see on any background. */
+    private static final int KEYCAP_FILL = 0x80000000;
+    private static final int KEYCAP_EDGE = 0x66FFFFFF;
+
+    /** Vanilla Style: a small value box drawn as a Minecraft button. False = not in Vanilla Style (draw the normal box). */
+    private static boolean vanillaBox(GuiGraphicsExtractor g, int x, int y, int w, int h, boolean hot) {
+        if (!VanillaStyle.on()) return false;
+        VanillaStyle.buttonBg(g, x, y, w, h, hot);
+        return true;
+    }
+
+    /** A setting row; a locked one (does nothing in the current style...) is drawn faded. */
     private void drawSetting(GuiGraphicsExtractor g, Row row, boolean hover, int accent, int mx) {
+        drawSettingRow(g, row, hover, accent, mx);
+        if (row.setting().lockedReason() != null) {
+            Render2D.roundRect(g, row.x() + 6, row.y(), row.w() - 8, row.h(), Theme.R_CONTROL, Theme.withAlpha(Theme.SURFACE, 0.62f));
+        }
+    }
+
+    private void drawSettingRow(GuiGraphicsExtractor g, Row row, boolean hover, int accent, int mx) {
         Setting<?> setting = row.setting();
         int x = row.x();
         int y = row.y();
         int w = row.w();
         int labelX = x + 10;
+        // A live preview (e.g. the crosshair) paints itself in its row
+        if (setting instanceof com.relaxedqol.client.setting.PreviewSetting preview) {
+            preview.paint(g, x + 10, y + 2, w - 18, row.h() - 4);
+            return;
+        }
         Keys keys = keys(setting);
         float hov = ANIM.smooth(keys.hov, hover ? 1 : 0, 28);
         if (hov > 0.004f && !setting.isAction()) Render2D.roundRect(g, x + 6, y, w - 8, row.h(), Theme.R_CONTROL, Theme.withAlpha(0xFFFFFFFF, 0.05f * hov));
@@ -999,8 +1086,10 @@ public class ClickGuiScreen extends Screen {
 
         if (setting.isAction()) {
             // An action is a real button: quiet until the mouse is on it
-            Render2D.roundRect(g, x + 10, y + 2, w - 18, row.h() - 4, Theme.R_CONTROL, Theme.mix(Theme.TRACK, Theme.withAlpha(accent, 0.55f), hov));
-            Render2D.roundOutline(g, x + 10, y + 2, w - 18, row.h() - 4, Theme.R_CONTROL, Theme.mix(Theme.HAIRLINE, Theme.withAlpha(accent, 0.8f), hov));
+            if (!vanillaBox(g, x + 10, y + 2, w - 18, row.h() - 4, hover)) {
+                Render2D.roundRect(g, x + 10, y + 2, w - 18, row.h() - 4, Theme.R_CONTROL, Theme.mix(Theme.TRACK, Theme.withAlpha(accent, 0.55f), hov));
+                Render2D.roundOutline(g, x + 10, y + 2, w - 18, row.h() - 4, Theme.R_CONTROL, Theme.mix(Theme.HAIRLINE, Theme.withAlpha(accent, 0.8f), hov));
+            }
             CrispText.centered(g, font, fitText(setting.getName(), w - 26), x + 10 + (w - 18) / 2, y + 5, Theme.TEXT);
             return;
         }
@@ -1016,7 +1105,8 @@ public class ClickGuiScreen extends Screen {
             value = fitText(value, room / 2);
             int pw = CrispText.width(font, value) + 10;
             valueW = pw + 4;
-            Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, waiting ? accent : hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
+            if (!vanillaBox(g, right - pw, y + 1, pw, 11, waiting || hover))
+                Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, waiting ? accent : hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
             CrispText.text(g, font, value, right - pw + 5, y + 3, Theme.TEXT);
         } else if (setting.isBoolean()) {
             valueW = 22;
@@ -1054,7 +1144,8 @@ public class ClickGuiScreen extends Screen {
             valueW = vw0 + 22;
             // A little drop-down button - click it and every option is listed
             int pw = vw0 + 17;
-            Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, setting == modeMenu || hover ? Theme.withAlpha(accent, 0.30f) : Theme.TRACK);
+            if (!vanillaBox(g, right - pw, y + 1, pw, 11, setting == modeMenu || hover))
+                Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, setting == modeMenu || hover ? Theme.withAlpha(accent, 0.30f) : Theme.TRACK);
             CrispText.text(g, font, value, right - pw + 4, y + 3, Theme.TEXT);
             CrispText.text(g, font, "\u25BE", right - 10, y + 3, hover ? Theme.TEXT : Theme.TEXT_FAINT);
         } else if (setting.isList()) {
@@ -1062,7 +1153,8 @@ public class ClickGuiScreen extends Screen {
             String value = count == 0 ? "Edit" : count + " \u00B7 Edit";
             int pw = CrispText.width(font, value) + 8;
             valueW = pw + 4;
-            Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
+            if (!vanillaBox(g, right - pw, y + 1, pw, 11, hover))
+                Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
             CrispText.text(g, font, value, right - pw + 4, y + 3, Theme.TEXT);
         } else if (setting.isText() && setting.usesPrompt()) {
             // A button showing the value; clicking it opens the text window
@@ -1070,7 +1162,8 @@ public class ClickGuiScreen extends Screen {
             String shown = fitText(value, Math.max(24, room * 55 / 100 - 18));
             int pw = CrispText.width(font, shown) + 18;
             valueW = pw + 4;
-            Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
+            if (!vanillaBox(g, right - pw, y + 1, pw, 11, hover))
+                Render2D.roundRect(g, right - pw, y + 1, pw, 11, Theme.R_CONTROL, hover ? Theme.withAlpha(accent, 0.45f) : Theme.TRACK);
             CrispText.text(g, font, shown, right - pw + 4, y + 3, setting.display().isEmpty() ? Theme.TEXT_DIM : Theme.TEXT);
             CrispText.text(g, font, "\u270E", x + w - 15, y + 3, hover ? Theme.TEXT : Theme.TEXT_FAINT);
         } else if (setting.isText()) {
@@ -1113,8 +1206,10 @@ public class ClickGuiScreen extends Screen {
         String value = waiting ? "Press a key\u2026" : bound ? KeyUtil.name(module.getKey()) : "None";
         int pw = CrispText.width(font, value) + 10;
         int px = x + w - 8 - pw;
-        Render2D.roundRect(g, px, y + 1, pw, 11, Theme.R_CONTROL, waiting ? Theme.withAlpha(accent, 0.35f) : hover ? 0x24FFFFFF : Theme.PILL);
-        Render2D.roundOutline(g, px, y + 1, pw, 11, Theme.R_CONTROL, waiting ? Theme.withAlpha(accent, 0.8f) : Theme.HAIRLINE);
+        if (!vanillaBox(g, px, y + 1, pw, 11, waiting || hover)) {
+            Render2D.roundRect(g, px, y + 1, pw, 11, Theme.R_CONTROL, waiting ? Theme.withAlpha(accent, 0.35f) : hover ? 0x24FFFFFF : Theme.PILL);
+            Render2D.roundOutline(g, px, y + 1, pw, 11, Theme.R_CONTROL, waiting ? Theme.withAlpha(accent, 0.8f) : Theme.HAIRLINE);
+        }
         CrispText.text(g, font, value, px + 5, y + 3, waiting || bound ? Theme.TEXT : Theme.TEXT_FAINT);
     }
 
@@ -1135,9 +1230,14 @@ public class ClickGuiScreen extends Screen {
         int x = (vw - w) / 2;
         int y = 9;
         int accent = Theme.accent();
-        Render2D.shadow(g, x, y, w, h, 9);
-        Render2D.roundRect(g, x, y, w, h, 9, Theme.header());
-        Render2D.roundOutline(g, x, y, w, h, 9, search.isEmpty() ? Theme.BORDER : Theme.withAlpha(accent, 0.9f));
+        boolean vanilla = VanillaStyle.on();
+        if (vanilla) {
+            VanillaStyle.field(g, x, y, w, h, !search.isEmpty());
+        } else {
+            Render2D.shadow(g, x, y, w, h, 9);
+            Render2D.roundRect(g, x, y, w, h, 9, Theme.header());
+            Render2D.roundOutline(g, x, y, w, h, 9, search.isEmpty() ? Theme.BORDER : Theme.withAlpha(accent, 0.9f));
+        }
         Render2D.icon(g, "search", x + 8, y + 4, 10, search.isEmpty() ? Theme.TEXT_FAINT : Theme.TEXT_DIM);
         // Blinking text cursor: the box is always ready to type in
         boolean blink = (System.currentTimeMillis() / 530) % 2 == 0;
@@ -1158,9 +1258,14 @@ public class ClickGuiScreen extends Screen {
         // panel layout: the Settings panel is shown) - it used to stay lit after leaving them, which looked like
         // you were still in the settings
         boolean inSettings = settingsShownNow();
-        Render2D.shadow(g, gx, y, GEAR, h, 9);
-        Render2D.roundRect(g, gx, y, GEAR, h, 9, inSettings ? Theme.withAlpha(accent, 0.55f) : Theme.header());
-        Render2D.roundOutline(g, gx, y, GEAR, h, 9, inSettings ? accent : Theme.BORDER);
+        boolean overGear = lastMx >= gx && lastMx < gx + GEAR && lastMy >= y && lastMy < y + h;
+        if (vanilla) {
+            VanillaStyle.buttonBg(g, gx, y, GEAR, h, inSettings || overGear);
+        } else {
+            Render2D.shadow(g, gx, y, GEAR, h, 9);
+            Render2D.roundRect(g, gx, y, GEAR, h, 9, inSettings ? Theme.withAlpha(accent, 0.55f) : Theme.header());
+            Render2D.roundOutline(g, gx, y, GEAR, h, 9, inSettings ? accent : Theme.BORDER);
+        }
         // Gear icon, centred in the round button
         int iconSize = 12;
         Render2D.icon(g, "gear", gx + (GEAR - iconSize) / 2, y + (h - iconSize) / 2, iconSize, inSettings ? Theme.TEXT : Theme.TEXT_DIM);
@@ -1170,9 +1275,13 @@ public class ClickGuiScreen extends Screen {
         int hx = gx + GEAR + HUD_BTN_GAP;
         int bw = hudBtnW();
         boolean overHud = lastMx >= hx && lastMx < hx + bw && lastMy >= y && lastMy < y + h;
-        Render2D.shadow(g, hx, y, bw, h, 9);
-        Render2D.roundRect(g, hx, y, bw, h, 9, overHud ? Theme.withAlpha(accent, 0.40f) : Theme.header());
-        Render2D.roundOutline(g, hx, y, bw, h, 9, overHud ? accent : Theme.BORDER);
+        if (vanilla) {
+            VanillaStyle.buttonBg(g, hx, y, bw, h, overHud);
+        } else {
+            Render2D.shadow(g, hx, y, bw, h, 9);
+            Render2D.roundRect(g, hx, y, bw, h, 9, overHud ? Theme.withAlpha(accent, 0.40f) : Theme.header());
+            Render2D.roundOutline(g, hx, y, bw, h, 9, overHud ? accent : Theme.BORDER);
+        }
         int tw = CrispText.width(font, "Edit HUD");
         int cx = hx + (bw - (9 + 5 + tw)) / 2;
         Render2D.icon(g, "pin", cx, y + (h - 9) / 2, 9, overHud ? Theme.TEXT : accent);
@@ -1182,7 +1291,9 @@ public class ClickGuiScreen extends Screen {
     private void drawTooltip(GuiGraphicsExtractor g, int mx, int my) {
         ClickGUI gui = settings();
         if (dragging != null || slider != null || (gui != null && !gui.showTooltips())) return;
-        String text = hovered != null ? hovered.getDescription() : hoveredSetting != null ? hoveredSetting.getHelp() : null;
+        String locked = hovered == null && hoveredSetting != null ? hoveredSetting.lockedReason() : null;
+        String text = hovered != null ? hovered.getDescription() : locked != null ? locked
+            : hoveredSetting != null ? hoveredSetting.getHelp() : null;
         if (text == null || text.isEmpty()) return;
         long shownFor = System.currentTimeMillis() - hoverStart - 350;
         if (shownFor < 0) return;
@@ -1355,6 +1466,7 @@ public class ClickGuiScreen extends Screen {
         CrispText.right(g, font, on + " on", x + w - 10, y + 7, Theme.TEXT_FAINT);
         Render2D.headerLine(g, x, y + APP_HEADER - 1, w, accent);
         Render2D.underGlow(g, x + 1, y + APP_HEADER, w - 2, accent);
+        if (CleanStyle.on()) CleanStyle.gloss(g, x, y, w, h, RADIUS);
 
         int bodyY = y + APP_HEADER;
         int bodyH = h - APP_HEADER;
@@ -1481,7 +1593,8 @@ public class ClickGuiScreen extends Screen {
             if (content == 0 && !bindRow) CrispText.text(g, font, "No settings", sx + 6, setTop + 4, Theme.TEXT_FAINT);
             appScrollBar(g, sx + sw - 3, setTop, setH, appSetContentH, appSetScroll, accent);
         }
-        Render2D.roundOutline(g, x, y, w, h, RADIUS, Theme.BORDER);
+        if (VanillaStyle.on()) VanillaStyle.bevel(g, x, y, w, h);
+        else Render2D.roundOutline(g, x, y, w, h, RADIUS, Theme.BORDER);
         setHover(hoverModule, hoverSetting);
     }
 
@@ -1530,9 +1643,11 @@ public class ClickGuiScreen extends Screen {
         if (cap != null) {
             // The bound key as a small key cap after the name
             int cx = rx + 8 + CrispText.width(font, shown) + 5;
-            Render2D.roundRect(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, Theme.PILL);
-            Render2D.roundOutline(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, Theme.HAIRLINE);
-            CrispText.text(g, font, cap, cx + 4, y + 5, Theme.TEXT_FAINT);
+            if (!vanillaBox(g, cx, y + 3, capW, rh - 4, false)) {
+                Render2D.roundRect(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, KEYCAP_FILL);
+                Render2D.roundOutline(g, cx, y + 3, capW, rh - 4, Theme.R_CONTROL, KEYCAP_EDGE);
+            }
+            CrispText.text(g, font, cap, cx + 4, y + 5, Theme.TEXT);
         }
         if (module.isSettingsOnly()) return;
         if (action) {
@@ -1724,6 +1839,10 @@ public class ClickGuiScreen extends Screen {
         if (appMode()) return appClicked(mx, my, button) || super.mouseClicked(event, doubleClick);
 
         List<Panel> panels = layout();
+        // Clicking a panel brings it to the front
+        Panel hitPanel = headerAt(panels, mx, my);
+        if (hitPanel == null) hitPanel = panelAt(panels, mx, my);
+        if (hitPanel != null) front = hitPanel.category;
         if (button == 0) {
             for (int i = panels.size() - 1; i >= 0; i--) {
                 Panel p = panels.get(i);
@@ -1772,6 +1891,9 @@ public class ClickGuiScreen extends Screen {
         if (header != null) {
             if (button == 0) {
                 dragging = header.category;
+                // A click without moving folds / unfolds the panel (dragging still moves it)
+                headerPressX = mx;
+                headerPressY = my;
                 POSITIONS.put(header.category, new int[]{header.x, header.y});
                 dragOffsetX = (int) Math.round(mx) - header.x;
                 dragOffsetY = (int) Math.round(my) - header.y;
@@ -1817,6 +1939,7 @@ public class ClickGuiScreen extends Screen {
 
     /** Opens a module's settings and makes sure all of them come into view. */
     private static void expand(Module module) {
+        front = module.getCategory(); // its settings come out on top
         EXPANDED.add(module.getName());
         revealName = module.getName();
         revealUntil = System.currentTimeMillis() + 700;
@@ -1862,6 +1985,8 @@ public class ClickGuiScreen extends Screen {
 
     private void clickSetting(Row row, double mx, double my, int button) {
         Setting<?> setting = row.setting();
+        if (setting.lockedReason() != null) return; // does nothing right now - the hover text says why
+        if (setting instanceof com.relaxedqol.client.setting.PreviewSetting) return; // just a picture
         // Clicked number / mode settings take the mouse wheel (see scrollFocus)
         scrollFocus = setting.isNumber() || setting.isMode() ? setting : null;
         if (setting.isKey()) {
@@ -1921,8 +2046,19 @@ public class ClickGuiScreen extends Screen {
         }
     }
 
+    /** Where a panel's title bar was pressed (a click there without moving folds the panel). */
+    private double headerPressX;
+    private double headerPressY;
+
     private boolean mouseReleased$smooth(MouseButtonEvent event) {
         ScreenPanelOverlay.mouseReleased();
+        if (dragging != null && event.button() == 0) {
+            double rx = event.x() / scale;
+            double ry = event.y() / scale;
+            if (Math.abs(rx - headerPressX) < 3 && Math.abs(ry - headerPressY) < 3) {
+                if (!COLLAPSED.remove(dragging)) COLLAPSED.add(dragging);
+            }
+        }
         appDragging = false;
         dragging = null;
         resizing = null;

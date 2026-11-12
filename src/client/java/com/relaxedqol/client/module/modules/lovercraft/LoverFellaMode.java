@@ -14,6 +14,31 @@ import java.util.List;
  * Everything is drawn by {@link com.relaxedqol.client.gui.LoverFx}; this module only holds the switches.
  */
 public class LoverFellaMode extends Module {
+    // ------------------------------------------------------------------ where the LoverCraft look is used
+    // Each part of the client can be switched on its own: the menus, the windows, Minecraft's own menus, the
+    // logo in the top-left corner and every HUD element.
+    private final Setting<Boolean> clientMenu = addSetting(new Setting<>("Client Menu", true),
+        "The client menu (Right Shift) in navy with red / cyan accents, hearts, the badge and the bobble heads behind it");
+    private final Setting<Boolean> windows = addSetting(new Setting<>("Client Windows", true),
+        "The client's windows (Notes, Notepad, Waypoints, Accounts, Radar...) in navy with red / cyan accents");
+    private final Setting<Boolean> mcMenus = addSetting(new Setting<>("Minecraft Menus", true),
+        "The title screen, server list and Esc menu: a soft navy tint, faint hearts and the sitters on the buttons");
+    private final Setting<Boolean> hudLogo = addSetting(new Setting<>("HUD Logo", true),
+        "The LoverCraft logo in the top-left corner of the HUD instead of the normal watermark");
+    private final Setting<Boolean> hudModuleList = addSetting(new Setting<>("Lit Module List", true),
+        "The module list on the HUD lights up in red / cyan");
+    private final Setting<Boolean> hudNotes = addSetting(new Setting<>("Lit Notes Card", true),
+        "The pinned-notes card on the HUD in LoverCraft style");
+    private final Setting<Boolean> hudRadar = addSetting(new Setting<>("Lit Radar", true),
+        "The radar card on the HUD lights up in red / cyan");
+    private final Setting<Boolean> hudKeystrokes = addSetting(new Setting<>("Lit Keystrokes", true),
+        "The keystrokes card on the HUD lights up in red / cyan");
+    private final Setting<Boolean> hudArmor = addSetting(new Setting<>("Lit Armor Status", true),
+        "The armor status card on the HUD lights up in red / cyan");
+    private final Setting<Boolean> hudPopups = addSetting(new Setting<>("Lit Pop-ups", true),
+        "Pop-ups and alerts (toasts, durability warning) light up in red / cyan");
+    private final Setting<Boolean> hudOther = addSetting(new Setting<>("Lit Other HUD", true),
+        "Every other HUD card (scoreboard frame, waypoints...) lights up in red / cyan");
     private final Setting<Boolean> bobbleHeads = addSetting(new Setting<>("Bobble Heads", true),
         "Bobble heads of the players below in the bottom-left corner of the menu (point at them to make them wobble)");
     private final Setting<String> heads = addSetting(new Setting<>("Heads", "LoverFella, Ayihana, Isaacbc76, RainingSoap").prompt(),
@@ -57,6 +82,41 @@ public class LoverFellaMode extends Module {
     public LoverFellaMode() {
         super("LoverFellaMode", "The whole client in LoverFella / LoverCraft style - colours, logos, hearts and bobble heads",
             ModuleCategory.LOVERCRAFT);
+    }
+
+    public boolean clientMenu() {
+        return clientMenu.getValue();
+    }
+
+    public boolean clientWindows() {
+        return windows.getValue();
+    }
+
+    public boolean minecraftMenus() {
+        return mcMenus.getValue();
+    }
+
+    public boolean hudLogo() {
+        return hudLogo.getValue();
+    }
+
+    /**
+     * Whether one HUD element lights up (scope = the element: "Watermark", "Info Panel", "Module List", or a card
+     * module's name such as "Notes", "Radar", "Keystrokes").
+     */
+    public boolean hudLit(String scope) {
+        return switch (scope) {
+            case "Watermark" -> hudLogo.getValue();
+            case "Info Panel" -> infoPanel.getValue();
+            case "Module List" -> hudModuleList.getValue();
+            case "Notes" -> hudNotes.getValue();
+            case "Radar" -> hudRadar.getValue();
+            case "Keystrokes" -> hudKeystrokes.getValue();
+            case "ArmorStatus" -> hudArmor.getValue();
+            case "PlayerAlert" -> alertStyle.getValue();
+            case "Pop-ups" -> hudPopups.getValue();
+            default -> hudOther.getValue();
+        };
     }
 
     public boolean bobbleHeads() {

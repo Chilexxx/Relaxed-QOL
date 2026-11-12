@@ -74,7 +74,7 @@ public class HUD extends Module {
     /** The HUD editor's elements of this module. */
     public List<com.relaxedqol.client.gui.HudElement> elements() {
         List<com.relaxedqol.client.gui.HudElement> out = new ArrayList<>();
-        boolean lover = com.relaxedqol.client.gui.LoverFx.on();
+        boolean lover = com.relaxedqol.client.gui.LoverFx.watermarkOn();
         if (watermark.getValue() && !lover) out.add(new com.relaxedqol.client.gui.HudElement("Watermark", wmWindow, watermarkStyle, this));
         if (info.getValue() && !com.relaxedqol.client.gui.LoverFx.infoPanelOn()) {
             out.add(new com.relaxedqol.client.gui.HudElement("Info Panel", infoWindow, infoStyle, this));
@@ -116,10 +116,18 @@ public class HUD extends Module {
         com.relaxedqol.client.util.SmoothFont.begin();
         try {
             int y = 4;
-            if (watermark.getValue()) y = drawWatermark(g, font, y, vw, vh) + 4;
-            if (info.getValue()) y = drawInfo(g, font, y, vw, vh) + 4;
-            leftBottom = y - 4;
-            if (moduleList.getValue()) drawModuleList(g, font, vw, vh);
+            // Each element has its own LoverFella Mode switch (whether it lights up red / cyan)
+            String prev = com.relaxedqol.client.gui.LoverFx.beginScope("Watermark");
+            try {
+                if (watermark.getValue()) y = drawWatermark(g, font, y, vw, vh) + 4;
+                com.relaxedqol.client.gui.LoverFx.beginScope("Info Panel");
+                if (info.getValue()) y = drawInfo(g, font, y, vw, vh) + 4;
+                leftBottom = y - 4;
+                com.relaxedqol.client.gui.LoverFx.beginScope("Module List");
+                if (moduleList.getValue()) drawModuleList(g, font, vw, vh);
+            } finally {
+                com.relaxedqol.client.gui.LoverFx.endScope(prev);
+            }
         } finally {
             com.relaxedqol.client.util.SmoothFont.end();
         }
@@ -132,7 +140,7 @@ public class HUD extends Module {
      * automatically placed element starts: under it while it sits at its automatic spot, else the same y.
      */
     private int drawWatermark(GuiGraphicsExtractor g, Font font, int y, int vw, int vh) {
-        if (com.relaxedqol.client.gui.LoverFx.on()) return com.relaxedqol.client.gui.LoverFx.drawWatermark(g, font, y);
+        if (com.relaxedqol.client.gui.LoverFx.watermarkOn()) return com.relaxedqol.client.gui.LoverFx.drawWatermark(g, font, y);
         Component title = Component.literal("Relaxed").withStyle(ChatFormatting.BOLD);
         String rest = " QOL";
         String version = "26.2";

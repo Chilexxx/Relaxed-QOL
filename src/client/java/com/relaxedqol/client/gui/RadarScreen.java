@@ -56,8 +56,16 @@ public class RadarScreen extends WindowScreen {
     private int listW;
     private int listH;
 
+    /** The window's size: at most the normal size, and at most ~3/4 of the screen. */
+    private static int fit(boolean width, int normal) {
+        var w = net.minecraft.client.Minecraft.getInstance().getWindow();
+        int screen = width ? w.getGuiScaledWidth() : w.getGuiScaledHeight();
+        return Math.max(width ? 300 : 200, Math.min(normal, screen * (width ? 76 : 84) / 100));
+    }
+
     public RadarScreen(Screen parent, Radar radar) {
-        super(parent, Component.literal("Radar"), "radar2", 640, 370);
+        // A window over the middle of the screen (about three quarters of it), not the whole screen
+        super(parent, Component.literal("Radar"), "radar3", fit(true, 640), fit(false, 370));
         this.radar = radar;
     }
 

@@ -1,0 +1,28 @@
+# 1.2 | 10 Nov 2026
++ Liquid Glass: a new look for the hotbar's hearts, hunger and armor - clear glass that only takes a tint of the colour (Hotbar > Icon Look)
+* Hotbar: hearts, hunger and armor are back in Minecraft's layout, with smooth glass icons that stay sharp at any GUI scale
+* Panels layout: click a category's title to fold it in (drag it to move it, like before)
+* Radar: clicking it opens a window in the middle of the screen instead of the whole screen
+* More FPS: every HUD card is kept and repeated on its own, so one card with items no longer makes all of them draw every frame
+* Hotbar: a cleaner frosted glass bar in Clean and Liquid Glass Style - faint slots, a light glass selection that slides, neater stack counts
++ Liquid Glass Style: a new style where everything is liquid glass - clear see-through panels with a glossy shine, a bright edge and light along the bottom, and liquid glass hearts and hunger (Settings or the Style Editor)
+* Liquid Glass Style: the world is blurred behind menus and windows, and light catches every edge
+* Shulker preview: follows your style - glass in Clean and Liquid Glass Style, Minecraft's panel in Vanilla Style
+* Liquid Glass icons: more depth - a second reflection and a darker band under the shine
+* Panels layout: the panel you use comes to the front, so its settings are never hidden behind another panel
+* Panels layout: folding and unfolding a category slides smoothly
+* What's New: shows once after every update, as soon as the title screen is up
+- Profiles: any profile can be deleted (also the one in use), new profiles start from the default settings, and servers linked to a profile switch every time you join
+
+# 1.1 | 10 Nov 2026
++ Setting Profiles: keep different setups (PvP, Building, Recording...) and switch in one click - or link a server so joining it switches for you
++ Share & Backup: copy all your settings as one code to send to friends, or use theirs - your old settings are always kept to undo
++ Custom Hotbar: the hotbar, hearts and hunger drawn in your style, with a smooth sliding selection
++ Style Editor: tune roundness, see-through-ness, borders, shadows, glow and the glass shine with a live preview
++ Menu Button Look: pick rounded, glass or Minecraft buttons for the game's menus, whatever style you use
++ What's New: this window - it shows once after every update
+* Pop-ups: follow the style you picked - square in Vanilla Style, frosted glass in Clean Style, calmer in the normal look
+* Crosshair: live preview in its settings
+* Chat: one time stamp per message instead of one per line
+- Account button: long names no longer overlap
+- Panels layout: modules you opened stay open when you come back

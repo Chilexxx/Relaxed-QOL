@@ -47,11 +47,11 @@ public class InventoryTweaks extends Module {
     /** The fill bar on shulker items is gone (hidden setting kept so old configs load). */
     private final Setting<Boolean> fillBars = addSetting(new Setting<>("Fill Bars", false).hide());
     /** Vanilla = looks like the game's own shulker box screen; Dark = a clean dark card. */
-    private final Setting<String> previewLook = addSetting(Setting.mode("Preview Look", "Card", "Card", "Vanilla"),
+    private final Setting<String> previewLook = addSetting(Setting.mode("Preview Look", "Match Style", "Match Style", "Card", "Vanilla"),
         "Card: a clean card in the box's colour with its icon and name. Vanilla: like the game's own shulker box window");
     /** The Vanilla look in the plain grey of your inventory instead of the box / client colour. */
     private final Setting<Boolean> vanillaPlain = addSetting(new Setting<>("Inventory Colour", true)
-        .showIf(() -> this.previewLook.getValue().equals("Vanilla")),
+        .showIf(() -> this.vanillaLook()),
         "Preview Look Vanilla: the preview has the same plain grey as your inventory (no box or client colour)");
     private final Setting<Boolean> highlight = addSetting(new Setting<>("Highlight Matches", true),
         "Hover any item and every shulker box in the screen that has that item inside gets an outline");
@@ -243,6 +243,12 @@ public class InventoryTweaks extends Module {
         g.text(font, text, x + 7, y + 4, 0xFFC9CDD9, false);
     }
 
+    /** The preview in Minecraft's look: picked, or Match Style while Vanilla Style is on. */
+    private boolean vanillaLook() {
+        String look = previewLook.getValue();
+        return look.equals("Vanilla") || (look.equals("Match Style") && com.relaxedqol.client.gui.VanillaStyle.on());
+    }
+
     private void drawPreview(AbstractContainerScreen<?> screen, GuiGraphicsExtractor g, Slot slot, int mouseX, int mouseY) {
         ItemStack box = slot.getItem();
         List<ItemStack> items = contentsOf(box);
@@ -260,7 +266,7 @@ public class InventoryTweaks extends Module {
         int cols = 9;
         int rows = Math.max(1, (shown.size() + cols - 1) / cols);
         int w = cols * 18 + 14;
-        boolean card = !previewLook.getValue().equals("Vanilla");
+        boolean card = !vanillaLook();
         int h = rows * 18 + (card ? CARD_HEADER + 9 : 24);
         float s = previewScale.getValue() / 100f;
         int sw = Math.round(w * s);
@@ -278,7 +284,7 @@ public class InventoryTweaks extends Module {
         g.pose().translate(x, y);
         g.pose().scale(s, s);
         int frame = tint.getValue() ? colorOf(box) : Theme.accent();
-        if (previewLook.getValue().equals("Vanilla")) drawVanilla(g, mc.font, box.getHoverName().getString(), used, shown, w, h,
+        if (vanillaLook()) drawVanilla(g, mc.font, box.getHoverName().getString(), used, shown, w, h,
             tint.getValue() && !vanillaPlain.getValue() ? colorOf(box) : 0);
         else drawCard(g, mc.font, box, box.getHoverName().getString(), used, shown, w, h, tint.getValue() ? colorOf(box) : Theme.accent());
         g.pose().popMatrix();
@@ -334,12 +340,19 @@ public class InventoryTweaks extends Module {
     private static void drawCard(GuiGraphicsExtractor g, Font font, ItemStack box, String title, int used, List<ItemStack> items,
                                  int w, int h, int dye) {
         int tone = 0xFF000000 | (dye & 0xFFFFFF);
-        Render2D.shadow(g, 0, 0, w, h, 6);
-        Render2D.roundRect(g, 0, 0, w, h, 6, 0xF412131A);
+        Theme.refresh();
+        // In the client's style: see-through glass in Clean / Liquid Glass Style (with the glass finish), the theme's
+        // panel and roundness otherwise
+        boolean glass = com.relaxedqol.client.gui.CleanStyle.on();
+        int r = Math.max(2, Math.min(10, Theme.R_SURFACE));
+        Render2D.shadow(g, 0, 0, w, h, r);
+        Render2D.roundRect(g, 0, 0, w, h, r, glass ? Theme.withAlpha(Theme.PANEL, com.relaxedqol.client.gui.CleanStyle.liquid() ? 0.72f : 0.82f)
+            : Theme.withAlpha(Theme.panel(), 0.96f));
         // Header: one even wash of the box colour and a hairline under it
-        Render2D.roundRectTop(g, 0, 0, w, CARD_HEADER, 6, Theme.withAlpha(tone, 0.20f));
+        Render2D.roundRectTop(g, 0, 0, w, CARD_HEADER, r, Theme.withAlpha(tone, glass ? 0.16f : 0.20f));
         g.fill(1, CARD_HEADER, w - 1, CARD_HEADER + 1, Theme.withAlpha(tone, 0.45f));
-        Render2D.roundOutline(g, 0, 0, w, h, 6, Theme.withAlpha(Theme.mix(tone, 0xFFFFFFFF, 0.25f), 0.55f));
+        if (glass) com.relaxedqol.client.gui.CleanStyle.gloss(g, 0, 0, w, h, r);
+        else Render2D.roundOutline(g, 0, 0, w, h, r, Theme.withAlpha(Theme.mix(tone, 0xFFFFFFFF, 0.25f), 0.55f));
 
         String info = used + "/" + SLOTS;
         int textY = (CARD_HEADER - 8) / 2 + 1;
@@ -363,7 +376,8 @@ public class InventoryTweaks extends Module {
             int cx = 7 + (i % 9) * 18;
             int cy = CARD_HEADER + 5 + (i / 9) * 18;
             ItemStack stack = items.get(i);
-            Render2D.roundRect(g, cx - 1, cy - 1, 18, 18, 3, stack.isEmpty() ? 0x1E000000 : 0x38000000);
+            if (glass) Render2D.roundRect(g, cx - 1, cy - 1, 18, 18, 4, stack.isEmpty() ? 0x0CFFFFFF : 0x16FFFFFF);
+            else Render2D.roundRect(g, cx - 1, cy - 1, 18, 18, 3, stack.isEmpty() ? 0x1E000000 : 0x38000000);
             if (stack.isEmpty()) continue;
             g.item(stack, cx, cy);
             g.itemDecorations(font, stack, cx, cy);

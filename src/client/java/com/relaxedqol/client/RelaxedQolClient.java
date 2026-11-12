@@ -56,6 +56,7 @@ public class RelaxedQolClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             com.relaxedqol.client.waypoint.WaypointManager.load();
             ConfigManager.loadFriends();
+            com.relaxedqol.client.util.Profiles.rememberDefaults();
             ConfigManager.load(ConfigManager.DEFAULT);
             // And the names you picked yourself
             com.relaxedqol.client.module.modules.lovercraft.LoverFellaMode lover =
@@ -78,7 +79,7 @@ public class RelaxedQolClient implements ClientModInitializer {
             if (look != null) {
                 boolean menuDown = InputConstants.isKeyDown(client.getWindow(), look.menuKey());
                 if (menuDown && !menuKeyWasDown && client.gui.screen() == null && client.player != null) {
-                    client.gui.setScreen(new ClickGuiScreen());
+                    client.gui.setScreen(ClickGuiScreen.create(null));
                 }
                 menuKeyWasDown = menuDown;
             }
@@ -151,30 +152,40 @@ public class RelaxedQolClient implements ClientModInitializer {
                 // Smart HUD: the in-game cards / alerts through the cache (worked out at most 60 times a second)
                 long t0 = com.relaxedqol.client.util.Perf.start();
                 com.relaxedqol.client.util.HudCache.layer("overlays", graphics, true,
-                    () -> drawOverlays(graphics, null, deltaTracker.getGameTimeDeltaPartialTick(true)));
+                    () -> drawOverlays(graphics, null, deltaTracker.getGameTimeDeltaPartialTick(true), false));
+                // The cards outside that layer: each one is cached on its own
+                OverlayRenderer.renderAll(graphics, deltaTracker.getGameTimeDeltaPartialTick(true));
                 com.relaxedqol.client.util.Perf.end(com.relaxedqol.client.util.Perf.CARDS, t0);
                 return;
             }
-            drawOverlays(graphics, open, deltaTracker.getGameTimeDeltaPartialTick(true));
+            drawOverlays(graphics, open, deltaTracker.getGameTimeDeltaPartialTick(true), true);
         });
         installRest();
     }
 
     /** The cards, alerts and pop-ups layer (radar, PlayerAlert, durability, toasts, REC dot, HUD cards). */
-    private static void drawOverlays(net.minecraft.client.gui.GuiGraphicsExtractor graphics, net.minecraft.client.gui.screens.Screen open, float partialTicks) {
+    private static void drawOverlays(net.minecraft.client.gui.GuiGraphicsExtractor graphics, net.minecraft.client.gui.screens.Screen open, float partialTicks,
+                                     boolean cards) {
         {
             com.relaxedqol.client.module.modules.misc.PlayerAlert playerAlert =
                 enabled(com.relaxedqol.client.module.modules.misc.PlayerAlert.class);
             boolean chatOpen = open instanceof net.minecraft.client.gui.screens.ChatScreen;
-            if (playerAlert != null && !com.relaxedqol.client.util.TabHud.open()
-                && (open == null || open instanceof com.relaxedqol.client.gui.HudEditorScreen
-                || (chatOpen && playerAlert.showWhileChatting()))) playerAlert.renderHud(graphics, -1);
-            com.relaxedqol.client.module.modules.player.DurabilityAlert durability =
-                enabled(com.relaxedqol.client.module.modules.player.DurabilityAlert.class);
-            if (durability != null && open == null) durability.renderHud(graphics);
-            com.relaxedqol.client.gui.Toasts.render(graphics);
+            // Each part has its own LoverFella Mode switch (whether it lights up red / cyan)
+            String prevScope = com.relaxedqol.client.gui.LoverFx.beginScope("PlayerAlert");
+            try {
+                if (playerAlert != null && !com.relaxedqol.client.util.TabHud.open()
+                    && (open == null || open instanceof com.relaxedqol.client.gui.HudEditorScreen
+                    || (chatOpen && playerAlert.showWhileChatting()))) playerAlert.renderHud(graphics, -1);
+                com.relaxedqol.client.gui.LoverFx.beginScope("Pop-ups");
+                com.relaxedqol.client.module.modules.player.DurabilityAlert durability =
+                    enabled(com.relaxedqol.client.module.modules.player.DurabilityAlert.class);
+                if (durability != null && open == null) durability.renderHud(graphics);
+                com.relaxedqol.client.gui.Toasts.render(graphics);
+            } finally {
+                com.relaxedqol.client.gui.LoverFx.endScope(prevScope);
+            }
             if (open instanceof ClickGuiScreen || (open != null && ScreenPanelOverlay.isAttachedTo(open))) return;
-            OverlayRenderer.renderAll(graphics, partialTicks);
+            if (cards) OverlayRenderer.renderAll(graphics, partialTicks);
         }
     }
 
@@ -205,6 +216,12 @@ public class RelaxedQolClient implements ClientModInitializer {
                 enabled(com.relaxedqol.client.module.modules.misc.TradeShot.class);
             if (tradeShot != null) tradeShot.onChat(message.getString());
         });
+        // Setting profiles: a server linked to a profile switches to it when you join
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client ->
+            {
+                com.relaxedqol.client.util.Profiles.tick();
+                com.relaxedqol.client.gui.ChangelogScreen.tickPending();
+            });
         ClientPlayConnectionEvents.DISCONNECT.register((listener, client) -> {
             // Nothing from this server may show on the next one
             com.relaxedqol.client.module.modules.misc.PlayerAlert alert =
@@ -220,6 +237,8 @@ public class RelaxedQolClient implements ClientModInitializer {
                 Screens.getWidgets(screen).add(com.relaxedqol.client.gui.MenuStyle.gearButton(screen));
                 // Switch Minecraft accounts right here (no restart, no second launcher instance)
                 Screens.getWidgets(screen).add(com.relaxedqol.client.gui.MenuStyle.accountButton(screen));
+                // After an update: "What's new" once
+                if (screen instanceof TitleScreen) com.relaxedqol.client.gui.ChangelogScreen.maybeShow(screen);
                 ScreenEvents.afterExtract(screen).register((s, graphics, mouseX, mouseY, tickProgress) ->
                     com.relaxedqol.client.gui.MenuStyle.afterExtract(s, graphics, mouseX, mouseY));
                 ScreenEvents.afterBackground(screen).register((s, graphics, mouseX, mouseY, tickProgress) ->
@@ -227,7 +246,7 @@ public class RelaxedQolClient implements ClientModInitializer {
                 ScreenKeyboardEvents.afterKeyPress(screen).register((s, event) -> {
                     com.relaxedqol.client.module.modules.client.ClickGUI look =
                         moduleManager.getModule(com.relaxedqol.client.module.modules.client.ClickGUI.class);
-                    if (look != null && event.key() == look.menuKey()) client.gui.setScreen(new ClickGuiScreen(s));
+                    if (look != null && event.key() == look.menuKey()) client.gui.setScreen(ClickGuiScreen.create(s));
                 });
                 return;
             }

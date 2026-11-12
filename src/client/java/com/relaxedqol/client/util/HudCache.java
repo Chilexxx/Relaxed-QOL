@@ -51,6 +51,11 @@ public final class HudCache {
     private static float frameMs = 16f;
     private static final long REFRESH_NS = 16_666_666L; // 60 times a second
 
+    /** Once per frame, before the client's HUD layers (when no layer is drawn with first = true). */
+    public static void beginFrame() {
+        frame();
+    }
+
     /** Called once per frame by the first HUD layer: keeps track of the frame time. */
     private static void frame() {
         long now = System.nanoTime();

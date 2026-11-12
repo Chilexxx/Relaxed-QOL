@@ -30,6 +30,11 @@ public final class LoverFx {
 
     private LoverFx() {}
 
+    /** Clean Style: LoverFella Mode's navy HUD pieces become see-through glass like the rest; otherwise as given. */
+    static float glass(float alpha) {
+        return CleanStyle.on() ? Math.min(alpha, 0.55f) : alpha;
+    }
+
     private static LoverFellaMode module() {
         if (module == null && RelaxedQolClient.moduleManager != null) {
             module = RelaxedQolClient.moduleManager.getModule(LoverFellaMode.class);
@@ -37,10 +42,52 @@ public final class LoverFx {
         return module;
     }
 
-    /** Whether LoverFella Mode is on. */
-    public static boolean on() {
+    /** Whether LoverFella Mode itself is on (whatever part of the client is being drawn). */
+    public static boolean modeOn() {
         LoverFellaMode m = module();
         return m != null && m.isEnabled() && !com.relaxedqol.client.util.Privacy.hides(m);
+    }
+
+    /**
+     * The HUD element being drawn right now ("Watermark", "Info Panel", "Module List", a card module's name...),
+     * or null while a menu / window is drawn. Every part of the client has its own LoverFella switch.
+     */
+    private static String scope;
+
+    /** Starts drawing a HUD element; returns the previous scope, to hand back to {@link #endScope}. */
+    public static String beginScope(String element) {
+        String prev = scope;
+        scope = element;
+        return prev;
+    }
+
+    public static void endScope(String prev) {
+        scope = prev;
+    }
+
+    /**
+     * Whether the LoverCraft look applies to what is drawn right now: the mode is on and the switch for this part
+     * (this HUD element, the client windows, or the client menu) is on.
+     */
+    public static boolean on() {
+        if (!modeOn()) return false;
+        LoverFellaMode m = module();
+        if (scope != null) return m.hudLit(scope);
+        net.minecraft.client.gui.screens.Screen open = net.minecraft.client.Minecraft.getInstance().gui.screen();
+        // No screen open: only the HUD is being drawn (a part without its own switch)
+        if (open == null) return m.hudLit("Other");
+        return open instanceof WindowScreen ? m.clientWindows() : m.clientMenu();
+    }
+
+    /** The LoverCraft logo instead of the normal watermark in the top-left corner. */
+    public static boolean watermarkOn() {
+        return modeOn() && module().hudLogo();
+    }
+
+    /** Title screen / server list / Esc menu decorations (and only while the client's menu look is used there). */
+    private static boolean minecraftMenusOn(LoverFellaMode m) {
+        return m != null && m.isEnabled() && m.minecraftMenus()
+            && com.relaxedqol.client.module.modules.client.ClickGUI.customButtonsSwitch();
     }
 
     public static boolean chatTag() {
@@ -78,7 +125,7 @@ public final class LoverFx {
         int w = 8 + iconW + font.width(lover) + font.width(craft) + font.width(heart) + 8;
         int h = 18;
         Render2D.shadow(g, 4, y, w, h, 8);
-        Render2D.roundRect(g, 4, y, w, h, 8, Theme.withAlpha(NAVY, 0.86f));
+        Render2D.roundRect(g, 4, y, w, h, 8, Theme.withAlpha(NAVY, glass(0.86f)));
         Render2D.roundOutline(g, 4, y, w, h, 8, Theme.withAlpha(accent(0), 0.55f));
         int x = 10;
         if (logo) {
@@ -126,7 +173,7 @@ public final class LoverFx {
             if (!SkinFaces.draw(g, peeker, faceX, faceY, 10, 0xFFFFFFFF)) g.fill(faceX, faceY, faceX + 10, faceY + 10, 0xFF2A3350);
         }
         Render2D.shadow(g, x, y, w, h, 8);
-        Render2D.roundRect(g, x, y, w, h, 8, Theme.withAlpha(NAVY, 0.88f));
+        Render2D.roundRect(g, x, y, w, h, 8, Theme.withAlpha(NAVY, glass(0.88f)));
         Render2D.roundOutline(g, x, y, w, h, 8, Theme.withAlpha(accent(1), 0.5f));
         int ly = y + 5;
         for (int i = 0; i < lines.size(); i++) {
@@ -160,7 +207,7 @@ public final class LoverFx {
     /** Behind the buttons of the pause menu / title screen / server list: a navy wash and drifting hearts. */
     public static void menuBackground(net.minecraft.client.gui.screens.Screen screen, GuiGraphicsExtractor g) {
         LoverFellaMode m = module();
-        if (m == null || !m.isEnabled()) return;
+        if (!minecraftMenusOn(m)) return;
         int vw = screen.width;
         int vh = screen.height;
         // Calm and clean - a soft navy tint that deepens towards the edges, a few faint hearts, one hairline
@@ -194,7 +241,7 @@ public final class LoverFx {
      */
     public static void menuForeground(net.minecraft.client.gui.screens.Screen screen, GuiGraphicsExtractor g, int mx, int my) {
         LoverFellaMode m = module();
-        if (m == null || !m.isEnabled()) return;
+        if (!minecraftMenusOn(m)) return;
         Font font = net.minecraft.client.Minecraft.getInstance().font;
         // The Esc menu has its own, smaller figures spread over several buttons
         if (screen instanceof net.minecraft.client.gui.screens.PauseScreen) {
@@ -346,7 +393,7 @@ public final class LoverFx {
         int h = rows.isEmpty() ? headerH : headerH + 2 + rows.size() * rowH + 4;
         boolean any = online > 0;
         Render2D.shadow(g, x, y, w, h, 8);
-        Render2D.roundRect(g, x, y, w, h, 8, Theme.withAlpha(NAVY, 0.9f));
+        Render2D.roundRect(g, x, y, w, h, 8, Theme.withAlpha(NAVY, glass(0.9f)));
         g.fillGradient(x + 1, y + 1, x + w - 1, y + headerH, 0x14FFFFFF, 0x00FFFFFF);
         Render2D.roundOutline(g, x, y, w, h, 8, any ? Theme.withAlpha(CYAN, 0.55f) : 0x26FFFFFF);
         // Header: a heart that beats while someone is online, the title, the count in a red / cyan pill
@@ -698,7 +745,7 @@ public final class LoverFx {
 
             // Name tag, under its own head
             int ly = vh - 13 - lift;
-            Render2D.roundRect(g, cx - lw / 2, ly, lw, 11, 5, Theme.withAlpha(NAVY, 0.92f));
+            Render2D.roundRect(g, cx - lw / 2, ly, lw, 11, 5, Theme.withAlpha(NAVY, glass(0.92f)));
             Render2D.roundOutline(g, cx - lw / 2, ly, lw, 11, 5, Theme.withAlpha(i % 2 == 0 ? RED : CYAN, 0.7f));
             g.text(font, name, cx - lw / 2 + 4, ly + 2, near ? 0xFFFFFFFF : 0xFFD8E2F5, false);
         }

@@ -44,6 +44,17 @@ public final class ConfigManager {
     }
 
     public static boolean save(String name) {
+        try {
+            write(dir().resolve(name + ".properties"), snapshot());
+            return true;
+        } catch (IOException e) {
+            RelaxedQolMod.LOGGER.error("Failed to save config {}", name, e);
+            return false;
+        }
+    }
+
+    /** Every module's on / off, key and settings as they are right now (what a config file holds). */
+    public static Properties snapshot() {
         Properties props = new Properties();
         for (Module module : RelaxedQolClient.moduleManager.getModules()) {
             String prefix = module.getName() + ".";
@@ -55,27 +66,55 @@ public final class ConfigManager {
                 }
             }
         }
-        try (Writer writer = Files.newBufferedWriter(dir().resolve(name + ".properties"), StandardCharsets.UTF_8)) {
+        return props;
+    }
+
+    /** Writes settings to a file (through a temporary file, so a crash never leaves half a file). */
+    public static void write(Path file, Properties props) throws IOException {
+        Files.createDirectories(file.getParent());
+        Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
+        try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
             props.store(writer, "Relaxed QOL config");
-            return true;
-        } catch (IOException e) {
-            RelaxedQolMod.LOGGER.error("Failed to save config {}", name, e);
-            return false;
+        }
+        Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /** Reads a settings file (null when it is missing or broken). */
+    public static Properties read(Path file) {
+        if (!Files.isRegularFile(file)) return null;
+        Properties props = new Properties();
+        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            props.load(reader);
+            return props;
+        } catch (IOException | IllegalArgumentException e) {
+            RelaxedQolMod.LOGGER.error("Failed to read config {}", file, e);
+            return null;
         }
     }
 
+    /** The client's config folder (.minecraft/config/relaxed-qol). */
+    public static Path folder() throws IOException {
+        return dir();
+    }
+
     public static boolean load(String name) {
-        Properties props = new Properties();
+        Properties props;
         try {
-            Path file = dir().resolve(name + ".properties");
-            if (!Files.exists(file)) return false;
-            try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-                props.load(reader);
-            }
+            props = read(dir().resolve(name + ".properties"));
         } catch (IOException e) {
             RelaxedQolMod.LOGGER.error("Failed to load config {}", name, e);
             return false;
         }
+        if (props == null) return false;
+        apply(props);
+        return true;
+    }
+
+    /**
+     * Puts saved settings into effect. Keys the client doesn't know (from another client or an older / newer version)
+     * are skipped; settings the file doesn't have keep their value.
+     */
+    public static void apply(Properties props) {
 
         // Modules that were renamed: their old saved settings still apply under the new name
         for (java.util.Map.Entry<String, String> rename : RENAMED.entrySet()) {
@@ -114,7 +153,6 @@ public final class ConfigManager {
                 module.setEnabled(Boolean.parseBoolean(enabled));
             }
         }
-        return true;
     }
 
     public static List<String> list() {

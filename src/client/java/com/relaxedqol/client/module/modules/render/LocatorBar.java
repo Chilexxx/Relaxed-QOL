@@ -72,6 +72,26 @@ public class LocatorBar extends Module {
         return position.getValue().equals("In XP Bar");
     }
 
+    private List<Player> candidates = new ArrayList<>();
+    private long candidatesAt;
+    private Object candidatesLevel;
+
+    /** The players that may show on the bar (not you, no spectators, NPCs only when wanted), refreshed every 200 ms. */
+    private List<Player> candidates() {
+        long now = System.currentTimeMillis();
+        if (now - candidatesAt < 200 && candidatesLevel == mc.level) return candidates;
+        candidatesAt = now;
+        candidatesLevel = mc.level;
+        List<Player> list = new ArrayList<>();
+        for (Player p : mc.level.players()) {
+            if (p == mc.player || p.isSpectator()) continue;
+            if (!npcs.getValue() && EntityUtil.isNpc(p)) continue;
+            list.add(p);
+        }
+        candidates = list;
+        return list;
+    }
+
     public void render(GuiGraphicsExtractor g) {
         hideDotsNow = hideVanilla.getValue();
         if (mc.player == null || mc.level == null) return;
@@ -79,9 +99,10 @@ public class LocatorBar extends Module {
         float yaw = mc.player.getYRot();
         List<Mark> marks = new ArrayList<>();
         int maxD = range.getValue();
-        for (Player p : mc.level.players()) {
-            if (p == mc.player || p.isSpectator()) continue;
-            if (!npcs.getValue() && EntityUtil.isNpc(p)) continue;
+        // Who can be on the bar is worked out a few times a second (the NPC check is not free with a full
+        // spawn); where they are on the bar is still updated every frame, so the dots move smoothly
+        for (Player p : candidates()) {
+            if (p.isRemoved()) continue;
             double d = p.position().distanceTo(me);
             if (d > maxD) continue;
             double dx = p.getX() - me.x;
