@@ -106,6 +106,10 @@ public final class Render2D {
         }
         if (alpha >= 1f) shadow(g, x, y, w, h, Theme.R_ROW);
         roundRect(g, x, y, w, h, Theme.R_ROW, Theme.fade(POPUP_BODY, alpha));
+        if (CleanStyle.liquid() && alpha > 0.6f) {
+            CleanStyle.gloss(g, x, y, w, h, Theme.R_ROW);
+            return;
+        }
         roundOutline(g, x, y, w, h, Theme.R_ROW, Theme.fade(Theme.BORDER, alpha));
     }
 
@@ -220,6 +224,7 @@ public final class Render2D {
             int w = 16;
             int h = 8;
             roundRect(g, x, y, w, h, 4, Theme.mix(CleanStyle.SWITCH_OFF_TRACK, accent, progress));
+            CleanStyle.glassControl(g, x, y, w, h, 4, 0.7f);
             float cx = x + 4f + progress * (w - 8);
             smoothCircle(g, cx, y + 4f, 2.9f, Theme.mix(0xFFC9CBD0, 0xFFFFFFFF, progress), 1f);
             return;

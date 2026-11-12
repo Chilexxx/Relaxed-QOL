@@ -989,6 +989,8 @@ public class ClickGuiScreen extends Screen {
         int fill = Theme.mix(Theme.withAlpha(0xFFFFFFFF, 0.07f * hov), Theme.withAlpha(accent, 0.16f + 0.06f * hov), on);
         Render2D.roundRect(g, x, y, w, h, ROW_R, fill);
         if (on > 0.01f) Render2D.roundRect(g, x + 2, y + 4, 2, h - 8, 1, Theme.withAlpha(accent, on));
+        // Liquid Glass: a lit module (or the one under the mouse) is a small pane of glass
+        CleanStyle.glassControl(g, x, y, w, h, ROW_R, Math.max(on, hov * 0.6f));
 
         int[] p = pills(row);
         boolean overBind = hover && mx >= p[0] && mx < p[0] + p[1];

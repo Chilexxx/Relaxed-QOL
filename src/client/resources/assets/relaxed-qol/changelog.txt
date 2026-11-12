@@ -8,6 +8,8 @@
 + Liquid Glass Style: a new style where everything is liquid glass - clear see-through panels with a glossy shine, a bright edge and light along the bottom, and liquid glass hearts and hunger (Settings or the Style Editor)
 * Liquid Glass Style: the world is blurred behind menus and windows, and light catches every edge
 * Shulker preview: follows your style - glass in Clean and Liquid Glass Style, Minecraft's panel in Vanilla Style
+* Liquid Glass Style: every pane now has a real glass edge - smooth at any GUI scale, brightest where light hits the top-left corner, with a soft glow just inside - on menus, windows, pop-ups, HUD cards, buttons, switches and lit modules
+* Shulker preview: redone - the box and its name at the top, a "12/27" chip, a slim bar showing how full it is, rounded slots with small stack counts, and solid enough that the inventory behind no longer shows through
 * Liquid Glass icons: more depth - a second reflection and a darker band under the shine
 * Panels layout: the panel you use comes to the front, so its settings are never hidden behind another panel
 * Panels layout: folding and unfolding a category slides smoothly

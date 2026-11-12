@@ -123,6 +123,14 @@ public final class HudStyle {
             g.fill(x, y, x + w, y + h, Theme.withAlpha(0xFF000000, Math.min(0.55f, a * 0.6f)));
             return;
         }
+        if (CleanStyle.liquid()) {
+            // Liquid Glass: a clear pane - a light see-through body, a soft sheen at the top and the lit glass edge
+            int r = 6;
+            Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(CleanStyle.HUD_BOX, Math.min(0.42f, a * 0.5f)));
+            if (h > 8) Render2D.roundRectTop(g, x, y, w, Math.min(h / 2, 12), r, 0x0CFFFFFF);
+            if (!GlassRim.control(g, x, y, w, h, r, 0.55f)) Render2D.roundOutline(g, x, y, w, h, r, 0x30FFFFFF);
+            return;
+        }
         if (CleanStyle.on()) {
             // A plain see-through box with small corners - no edge, no shadow
             Render2D.roundRect(g, x, y, w, h, 3, Theme.withAlpha(CleanStyle.HUD_BOX, Math.min(0.5f, a * 0.6f)));
