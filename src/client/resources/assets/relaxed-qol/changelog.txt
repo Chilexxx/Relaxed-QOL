@@ -1,4 +1,11 @@
 # 1.2 | 10 Nov 2026
+* Smooth font: no longer grainy - the client's text is now drawn smoothly in every style that uses it
+* HUD cards keep normal corners when you make a card bigger or smaller, and the Liquid Glass edge stays sharp on them
++ Bobble Heads: now in every style (Settings > Bobble Heads), not only in LoverFella Mode - pick whose heads, or leave it empty for your own
+* Menu: modules that open a window (Notepad, CoordsCopy...) are always at the bottom of their category
+- Menu: no more dark line across the category headings
+* LoverCraft badge: one smooth glow behind the logo instead of rings with visible edges
++ ModPanel / QuickPanel: up to 12 command buttons, and pick the layout - a grid with as many columns as you like, one row or one column
 + Liquid Glass: a new look for the hotbar's hearts, hunger and armor - clear glass that only takes a tint of the colour (Hotbar > Icon Look)
 * Hotbar: hearts, hunger and armor are back in Minecraft's layout, with smooth glass icons that stay sharp at any GUI scale
 * Panels layout: click a category's title to fold it in (drag it to move it, like before)

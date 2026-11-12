@@ -15,16 +15,22 @@ import com.mojang.blaze3d.platform.InputConstants;
  * Drag the panel by its title, resize it from its corner. The gear in its title opens the client menu.
  */
 public class QuickPanel extends Module {
-    public static final int BUTTONS = 4;
+    /** Room for this many buttons; "Buttons" picks how many are shown. */
+    public static final int BUTTONS = 12;
 
     /** Where the radar cards can be moved (not shown: the panel itself only shows on your inventory). */
     private final Setting<Boolean> allScreens = addSetting(new Setting<>("All Screens", true).hide());
-    private final Setting<String> layout = addSetting(Setting.mode("Layout", "2 x 2", "2 x 2", "Row", "Column"),
-        "How the 4 buttons are arranged: a 2 x 2 grid, one row, or one column");
+    private final Setting<Integer> count = addSetting(new Setting<>("Buttons", 4, 1, BUTTONS, 1),
+        "How many command buttons the panel has (1 - " + BUTTONS + ")");
+    private final Setting<String> layout = addSetting(Setting.mode("Layout", "Grid", "Grid", "Row", "Column"),
+        "How the buttons are arranged: a grid (pick how many columns), one row, or one column");
+    private final Setting<Integer> columns = addSetting(new Setting<>("Columns", 2, 1, 6, 1)
+            .showIf(() -> !"Row".equals(this.layout.getValue()) && !"Column".equals(this.layout.getValue())),
+        "How many buttons side by side in the grid (2 = the classic 2 x 2 with 4 buttons)");
     private final Setting<Boolean> feedback = addSetting(new Setting<>("Chat Feedback", false),
         "Say in chat which command a button sent");
     private final Setting<Boolean> closeOnUse = addSetting(new Setting<>("Close On Click", false),
-        "Clicking one of your 4 buttons closes the inventory / chest (or whatever screen you are in) first, then runs it");
+        "Clicking one of your buttons closes the inventory / chest (or whatever screen you are in) first, then runs it");
     private final Setting<Integer> textSize = addSetting(new Setting<>("Text Size %", 115, 100, 200, 5),
         "How big the panel's text is (the buttons grow with it). Drag the panel's corner to resize the whole panel");
 
@@ -45,16 +51,18 @@ public class QuickPanel extends Module {
     }
 
     public QuickPanel() {
-        super("QuickPanel", "The panel on every chest / inventory: 4 buttons with your own commands (e.g. /home farm) and"
+        super("QuickPanel", "The panel on every chest / inventory: up to " + BUTTONS + " buttons with your own commands (e.g. /home farm) and"
             + " the slot under your mouse", ModuleCategory.MISC);
         for (int i = 0; i < BUTTONS; i++) {
             int n = i + 1;
-            names[i] = addSetting(new Setting<>("Button " + n + " Name", "").prompt(),
+            int index = i;
+            java.util.function.BooleanSupplier shown = () -> index < count();
+            names[i] = addSetting(new Setting<>("Button " + n + " Name", "").prompt().showIf(shown),
                 "The text on button " + n + " (e.g. Farm), at most " + NAME_MAX + " letters. Empty = the command itself is shown");
-            commands[i] = addSetting(new Setting<>("Button " + n + " Command", "").prompt(),
+            commands[i] = addSetting(new Setting<>("Button " + n + " Command", "").prompt().showIf(shown),
                 "What button " + n + " runs, e.g. /home farm. Starting with / = a server command, . = a client"
                     + " command, anything else is sent as a chat message");
-            keys[i] = addSetting(new KeySetting("Button " + n + " Key", -1, true),
+            keys[i] = addSetting((KeySetting) new KeySetting("Button " + n + " Key", -1, true).showIf(shown),
                 "Runs button " + n + " with a key while no screen is open (Bind = no key)");
         }
         setEnabled(true);
@@ -94,7 +102,7 @@ public class QuickPanel extends Module {
 
     /** Runs button i. Returns false when it has no command or there is no server to send it to. */
     public boolean run(int i) {
-        if (i < 0 || i >= BUTTONS || !isSet(i)) return false;
+        if (i < 0 || i >= count() || !isSet(i)) return false;
         String line = command(i);
         boolean sent = CommandUtil.run(line);
         if (sent && feedback.getValue() && !line.startsWith(".")) ChatUtil.send("§7» " + label(i) + ": §f" + line);
@@ -105,7 +113,7 @@ public class QuickPanel extends Module {
     public void keyTick() {
         for (int i = 0; i < BUTTONS; i++) {
             int key = keys[i].getKey();
-            boolean down = isEnabled() && key >= 0 && mc.getWindow() != null && InputConstants.isKeyDown(mc.getWindow(), key);
+            boolean down = isEnabled() && i < count() && key >= 0 && mc.getWindow() != null && InputConstants.isKeyDown(mc.getWindow(), key);
             if (down && !keyWasDown[i] && mc.gui.screen() == null && mc.player != null) run(i);
             keyWasDown[i] = down;
         }
@@ -121,9 +129,23 @@ public class QuickPanel extends Module {
         return allScreens.getValue();
     }
 
-    /** "2 x 2", "Row" or "Column". */
+    /** "Grid", "Row" or "Column". */
     public String layoutMode() {
         return layout.getValue();
+    }
+
+    /** How many buttons are shown. */
+    public int count() {
+        return Math.max(1, Math.min(BUTTONS, count.getValue()));
+    }
+
+    /** Buttons side by side: the grid's columns, all of them in a row, or 1 in a column. */
+    public int columnCount() {
+        return switch (layout.getValue()) {
+            case "Row" -> count();
+            case "Column" -> 1;
+            default -> Math.max(1, Math.min(count(), columns.getValue()));
+        };
     }
 
     public int getX() {

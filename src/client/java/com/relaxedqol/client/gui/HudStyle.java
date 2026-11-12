@@ -118,6 +118,8 @@ public final class HudStyle {
     /** Same, with the body as solid as {@code alpha} (0..1). */
     public static void card(GuiGraphicsExtractor g, int x, int y, int w, int h, float alpha) {
         float a = bodyAlpha >= 0 ? bodyAlpha : alpha;
+        // A card made bigger or smaller (HUD editor) keeps the corners of a normal card instead of growing them
+        float k = cardScale(g);
         if (VanillaStyle.on()) {
             // Like Minecraft's own HUD boxes (scoreboard, chat): a plain see-through black box, no edge
             g.fill(x, y, x + w, y + h, Theme.withAlpha(0xFF000000, Math.min(0.55f, a * 0.6f)));
@@ -125,7 +127,7 @@ public final class HudStyle {
         }
         if (CleanStyle.liquid()) {
             // Liquid Glass: a clear pane - a light see-through body, a soft sheen at the top and the lit glass edge
-            int r = 6;
+            int r = corner(6, k);
             Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(CleanStyle.HUD_BOX, Math.min(0.42f, a * 0.5f)));
             if (h > 8) Render2D.roundRectTop(g, x, y, w, Math.min(h / 2, 12), r, 0x0CFFFFFF);
             if (!GlassRim.control(g, x, y, w, h, r, 0.55f)) Render2D.roundOutline(g, x, y, w, h, r, 0x30FFFFFF);
@@ -133,12 +135,27 @@ public final class HudStyle {
         }
         if (CleanStyle.on()) {
             // A plain see-through box with small corners - no edge, no shadow
-            Render2D.roundRect(g, x, y, w, h, 3, Theme.withAlpha(CleanStyle.HUD_BOX, Math.min(0.5f, a * 0.6f)));
+            Render2D.roundRect(g, x, y, w, h, corner(3, k), Theme.withAlpha(CleanStyle.HUD_BOX, Math.min(0.5f, a * 0.6f)));
             return;
         }
-        if (shadow && a > 0.05f) Render2D.shadow(g, x, y, w, h, RADIUS);
-        Render2D.roundRect(g, x, y, w, h, RADIUS, Theme.withAlpha(bodyColor, a));
-        if ((EDGE >>> 24) != 0) Render2D.roundOutline(g, x, y, w, h, RADIUS, EDGE);
+        int r = corner(RADIUS, k);
+        if (shadow && a > 0.05f) Render2D.shadow(g, x, y, w, h, r);
+        Render2D.roundRect(g, x, y, w, h, r, Theme.withAlpha(bodyColor, a));
+        if ((EDGE >>> 24) != 0) Render2D.roundOutline(g, x, y, w, h, r, EDGE);
+    }
+
+    /** How much the card itself is scaled (1 = normal size; the whole-HUD scale does not count). */
+    private static float cardScale(GuiGraphicsExtractor g) {
+        org.joml.Matrix3x2f m = g.pose();
+        float sx = (float) Math.sqrt(m.m00() * m.m00() + m.m01() * m.m01());
+        float sy = (float) Math.sqrt(m.m10() * m.m10() + m.m11() * m.m11());
+        float k = (sx + sy) / 2f / Math.max(0.05f, OverlayRenderer.hudScale());
+        return k > 0.05f ? k : 1f;
+    }
+
+    /** A corner radius that looks the same on screen at card scale k. */
+    private static int corner(int r, float k) {
+        return Math.max(Math.min(r, 2), Math.round(r / k));
     }
 
     /** The accent mark in front of a card title (a small smooth dot). */

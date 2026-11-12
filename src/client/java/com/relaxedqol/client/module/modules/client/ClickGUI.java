@@ -130,7 +130,35 @@ public class ClickGUI extends Module {
     private final Setting<Boolean> screenshotTools = addSetting(new Setting<>("Screenshot Tools", true),
         "After F2: the screenshot is copied to your clipboard and one chat line shows Copy / Open / Folder / Delete"
             + " (instead of the game's own \"Saved screenshot as\" line)");
+    private final Setting<Boolean> bobbleHeads = addSetting(new Setting<>("Bobble Heads", false),
+        "Bobble heads in the bottom-left corner of the menu, in every style (point at them to make them wobble)."
+            + " LoverFella Mode has its own");
+    private final Setting<String> bobbleNames = addSetting(new Setting<>("Bobble Head Players", "").prompt()
+            .showIf(() -> this.bobbleHeads.getValue()),
+        "The players shown as bobble heads, separated with commas (their real skins are used) - up to 10."
+            + " Empty = just you");
     private static ClickGUI self;
+
+    /** Settings > Bobble Heads: the names to show, or null when it is off. */
+    public static java.util.List<String> bobbleHeadNames() {
+        ClickGUI g = self;
+        if (g == null || !g.bobbleHeads.getValue()) return null;
+        java.util.List<String> out = new java.util.ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (String part : g.bobbleNames.getValue().split("[,;\\s]+")) {
+            String n = part.trim();
+            if (out.size() >= 10) break;
+            if (n.matches("[A-Za-z0-9_]{2,16}") && seen.add(n.toLowerCase(java.util.Locale.ROOT))) out.add(n);
+        }
+        if (out.isEmpty()) {
+            try {
+                out.add(net.minecraft.client.Minecraft.getInstance().getUser().getName());
+            } catch (RuntimeException ignored) {
+                // no name yet
+            }
+        }
+        return out;
+    }
 
     // ------------------------------------------------------------------ the theme (set in the HUD editor's Theme tab)
     private final com.relaxedqol.client.setting.ColorSetting themeSurface = themeColor("Theme Surface", "#18191C");

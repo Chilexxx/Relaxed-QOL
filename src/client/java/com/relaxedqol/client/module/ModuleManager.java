@@ -122,10 +122,14 @@ public class ModuleManager {
     }
 
     public List<Module> getModulesByCategory(ModuleCategory category) {
+        // Modules that open a window (Notepad, CoordsCopy...) always come last in their category
         List<Module> result = new ArrayList<>();
+        List<Module> windows = new ArrayList<>();
         for (Module module : modules) {
-            if (module.getCategory() == category) result.add(module);
+            if (module.getCategory() != category) continue;
+            (module instanceof ActionModule ? windows : result).add(module);
         }
+        result.addAll(windows);
         return result;
     }
 

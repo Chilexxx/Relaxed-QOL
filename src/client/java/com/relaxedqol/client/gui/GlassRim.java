@@ -37,22 +37,24 @@ public final class GlassRim {
     private static boolean draw(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, float strength, boolean glow) {
         if (broken) return false;
         if (w < 4 || h < 4 || strength <= 0.01f) return true;
-        int gs = Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale());
+        // Screen pixels per unit here (GUI scale times any card / menu scale), so the edge is painted for exactly
+        // the size it lands on: crisp and the same thickness on a scaled HUD card as anywhere else
+        float k = Math.max(1f, Math.round(com.relaxedqol.client.util.SmoothFont.pixelsPer(g.pose()) * 4f) / 4f);
         int half = Math.min(w, h) / 2;
         r = Math.max(0, Math.min(r, half));
         int c = Math.min(Math.max(r + 4, glow ? 12 : 6), half);
         if (c < 2) return true;
-        Identifier id = texture(gs, r, c, glow);
+        Identifier id = texture(k, r, c, glow);
         if (id == null) return false;
-        int s = c * gs;
+        int s = Math.round(c * k);
         int t = 2 * s;
         int col = (Math.round(Math.min(1f, strength) * 255) << 24) | 0xFFFFFF;
-        int X = x * gs;
-        int Y = y * gs;
-        int W = w * gs;
-        int H = h * gs;
+        int X = Math.round(x * k);
+        int Y = Math.round(y * k);
+        int W = Math.round((x + w) * k) - X;
+        int H = Math.round((y + h) * k) - Y;
         g.pose().pushMatrix();
-        g.pose().scale(1f / gs, 1f / gs);
+        g.pose().scale(1f / k, 1f / k);
         g.blit(RenderPipelines.GUI_TEXTURED, id, X, Y, 0, 0, s, s, t, t, col);
         g.blit(RenderPipelines.GUI_TEXTURED, id, X + W - s, Y, s, 0, s, s, t, t, col);
         g.blit(RenderPipelines.GUI_TEXTURED, id, X, Y + H - s, 0, s, s, s, t, t, col);
@@ -81,13 +83,13 @@ public final class GlassRim {
         g.pose().popMatrix();
     }
 
-    private static Identifier texture(int gs, int r, int c, boolean glow) {
-        String key = gs + "_" + r + "_" + c + (glow ? "g" : "c");
+    private static Identifier texture(float k, int r, int c, boolean glow) {
+        String key = Math.round(k * 4) + "_" + r + "_" + c + (glow ? "g" : "c");
         Identifier id = TEXTURES.get(key);
         if (id != null) return id;
         if (TEXTURES.size() > 400) return null; // never grows without end
         try {
-            BufferedImage img = paint(gs, r, c, glow);
+            BufferedImage img = paint(k, r, c, glow);
             ByteArrayOutputStream png = new ByteArrayOutputStream();
             javax.imageio.ImageIO.write(img, "png", png);
             com.mojang.blaze3d.platform.NativeImage image =
@@ -105,8 +107,8 @@ public final class GlassRim {
     }
 
     /** A small rounded box (2c x 2c GUI pixels) with the lit rim; its four quarters are the four corners. */
-    private static BufferedImage paint(int gs, int r, int c, boolean glow) {
-        int t = 2 * c * gs;
+    private static BufferedImage paint(float gs, int r, int c, boolean glow) {
+        int t = 2 * Math.round(c * gs);
         float rad = r * gs;
         float half = t / 2f;
         float rimW = Math.max(1f, gs * 0.7f);

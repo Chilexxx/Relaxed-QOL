@@ -172,7 +172,24 @@ public final class SmoothFont {
             if (samplerField == null) throw new NoSuchFieldException("texture sampler");
         }
         if (samplerField.get(texture) != linearSampler) samplerField.set(texture, linearSampler);
+        if (texture instanceof net.minecraft.client.renderer.texture.AbstractTexture t && t.getTextureView() != null) {
+            SMOOTH_VIEWS.put(t.getTextureView(), Boolean.TRUE);
+        }
         return true;
+    }
+
+    /**
+     * The smooth font's own textures. Minecraft draws all menu / HUD text with blocky (nearest) sampling whatever the
+     * texture says, which makes a smooth font grainy and jagged; GlyphRenderStateMixin asks here and draws these
+     * textures (and only these - Minecraft's own font is never touched) with smooth sampling instead.
+     */
+    private static final java.util.Map<Object, Boolean> SMOOTH_VIEWS =
+        java.util.Collections.synchronizedMap(new java.util.IdentityHashMap<>());
+
+    /** The smooth sampler for one of the smooth font's textures, or null for any other texture. */
+    public static com.mojang.blaze3d.textures.GpuSampler samplerFor(Object textureView) {
+        if (textureView == null || atlasBroken || !(linearSampler instanceof com.mojang.blaze3d.textures.GpuSampler s)) return null;
+        return SMOOTH_VIEWS.containsKey(textureView) ? s : null;
     }
 
     public static void end() {
