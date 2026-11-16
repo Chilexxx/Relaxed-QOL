@@ -129,7 +129,7 @@ public final class PlaceMode {
         distance = 6;
         wheel = 0;
         keepY = false;
-        copy = null;
+        letGo();
         trouble = null;
         applied = null;
         quiet = 0;
@@ -177,7 +177,7 @@ public final class PlaceMode {
             AreaCopy read = null;
             String failed = null;
             try {
-                read = AreaCopy.read(file);
+                read = AreaCopy.read(file, SchematicLibrary.lowImpact());
                 if (read == null) read = AreaCopy.ofMap(Schematic.load(file).blocks);
             } catch (java.io.IOException | RuntimeException e) {
                 failed = e.getMessage() == null ? e.toString() : e.getMessage();
@@ -187,7 +187,10 @@ public final class PlaceMode {
             AreaCopy got = read;
             String why = failed;
             mc.execute(() -> {
-                if (kind != Kind.PASTE || level != startedIn || !name.equals(file.getFileName().toString())) return;
+                if (kind != Kind.PASTE || level != startedIn || !name.equals(file.getFileName().toString())) {
+                    if (got != null) got.close(); // the mode was left while the file was read
+                    return;
+                }
                 if (got == null) {
                     trouble = why;
                     return;
@@ -215,9 +218,15 @@ public final class PlaceMode {
         return null;
     }
 
+    /** The file read for the preview is not going to be pasted: one held on disk (Low Impact) gives its file back. */
+    private static void letGo() {
+        if (copy != null) copy.close();
+        copy = null;
+    }
+
     private static void end() {
         kind = null;
-        copy = null;
+        letGo();
         level = null;
         net.minecraft.client.KeyMapping.releaseAll();
     }
@@ -243,6 +252,7 @@ public final class PlaceMode {
         } else if (kind == Kind.PASTE) {
             if (copy == null) return; // still reading
             AreaCopy ready = copy;
+            copy = null; // the paste has it now
             BlockPos at = origin;
             int q = turns;
             end();

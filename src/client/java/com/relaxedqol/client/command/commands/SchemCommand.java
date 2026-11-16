@@ -77,6 +77,7 @@ public class SchemCommand extends Command {
                 }
             }
             case "paste" -> paste(args);
+            case "lowimpact", "gentle", "light" -> ChatUtil.send(SchematicLibrary.setLowImpact(args.length > 1 ? args[1] : null));
             case "cancel", "abort" -> {
                 // ends a copy or a paste that is under way
                 String paste = SchematicLibrary.pasteState() != null ? SchematicLibrary.stopPaste() : null;
@@ -132,7 +133,7 @@ public class SchemCommand extends Command {
 
     @Override
     public List<String> suggest(String[] args, int index) {
-        if (index == 0) return List.of("select", "pos1", "pos2", "save", "chunks", "paste", "preview", "cancel", "list");
+        if (index == 0) return List.of("select", "pos1", "pos2", "save", "chunks", "paste", "preview", "cancel", "lowimpact", "list");
         if (index == 1 && args.length > 0 && (args[0].equalsIgnoreCase("paste") || args[0].equalsIgnoreCase("preview"))) {
             List<String> names = new ArrayList<>();
             for (Path p : Schematic.listFiles()) {
@@ -146,6 +147,6 @@ public class SchemCommand extends Command {
 
     @Override
     public String getUsage() {
-        return "schem [select | pos1 | pos2 | save <name> | chunks [radius] <name> | paste <name> [air] [at <x y z>] | paste stop | cancel | preview <name> | list]";
+        return "schem [select | pos1 | pos2 | save <name> | chunks [radius] <name> | paste <name> [air] [at <x y z>] | paste stop | cancel | lowimpact [on|off] | preview <name> | list]";
     }
 }

@@ -110,8 +110,11 @@ public class SchematicLibraryScreen extends WindowScreen {
                 if (no != null) say(strip(no), 0xFFFF4D5E);
             }
         }, Theme.SUCCESS, () -> SchematicLibrary.pasteState() != null);
+        // slower, but next to no memory and a steady frame rate (counts from the next copy or paste)
+        pill(() -> "Low Impact: " + (SchematicLibrary.lowImpact() ? "On" : "Off"), rx, py + 17, rw, 14,
+            () -> say(strip(SchematicLibrary.setLowImpact(null)), SchematicLibrary.lowImpact() ? Theme.SUCCESS : Theme.TEXT_DIM), 0, SchematicLibrary::lowImpact);
         // ---- the list
-        int fy = py + 17 + 16;
+        int fy = py + 17 * 2 + 16;
         int third = (rw - 6) / 3;
         pill(() -> sort == SchematicLibrary.Sort.NAME ? "A-Z" : sort == SchematicLibrary.Sort.NEWEST ? "Newest" : "Largest", rx, fy, third, 14, () -> {
             sort = SchematicLibrary.Sort.values()[(sort.ordinal() + 1) % SchematicLibrary.Sort.values().length];
@@ -178,7 +181,7 @@ public class SchematicLibraryScreen extends WindowScreen {
         g.text(font, "COPY FROM THE WORLD", rx, y + 1, Theme.TEXT_FAINT, false);
         int py = y + 12 + 17 * 2 + 16;
         g.text(font, "PASTE  (single player)", rx, py - 11, Theme.TEXT_FAINT, false);
-        int fy = py + 17 + 16;
+        int fy = py + 17 * 2 + 16;
         g.text(font, "FILES", rx, fy - 11, Theme.TEXT_FAINT, false);
         int ty = fy + 22;
         if (selected != null) {

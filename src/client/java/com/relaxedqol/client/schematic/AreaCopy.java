@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +44,7 @@ public final class AreaCopy {
     /** Whole chunks: pasted back at the height they were copied at, not at your feet. */
     public final boolean keepHeight;
     /** (y * sizeZ + z) * sizeX + x -> number in the list; 0 = nothing there. */
-    final char[] cells;
+    final Cells cells;
     final List<BlockState> palette;
     public final List<Held> held;
     public final long blocks;
@@ -58,7 +57,7 @@ public final class AreaCopy {
      */
     public java.util.BitSet missing;
 
-    private AreaCopy(int sizeX, int sizeY, int sizeZ, BlockPos from, boolean keepHeight, char[] cells, List<BlockState> palette, List<Held> held, long blocks) {
+    private AreaCopy(int sizeX, int sizeY, int sizeZ, BlockPos from, boolean keepHeight, Cells cells, List<BlockState> palette, List<Held> held, long blocks) {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
@@ -70,21 +69,9 @@ public final class AreaCopy {
         this.blocks = blocks;
     }
 
-    /** Stops with a plain sentence when the game has no room left for this many cells. */
-    private static void room(long count) {
-        if (count > 1_000_000_000L) throw new IllegalStateException("That is too much for one copy (" + count / 1_000_000 + " million cells) - take fewer chunks.");
-        // two bytes a cell and nothing else of that size: the file is written from the cells and read into them
-        long need = count * 2 + (64L << 20);
-        Runtime rt = Runtime.getRuntime();
-        long free = rt.maxMemory() - (rt.totalMemory() - rt.freeMemory());
-        if (need > free) {
-            System.gc();
-            free = rt.maxMemory() - (rt.totalMemory() - rt.freeMemory());
-        }
-        if (need > free) {
-            throw new IllegalStateException("Not enough memory for that much (needs about " + (need >> 20) + " MB, " + (free >> 20)
-                + " MB free) - take fewer chunks, or give the game more memory.");
-        }
+    /** Done with this copy: one that is held on disk (Low Impact) gives its file back. Not to be read after this. */
+    public void close() {
+        cells.close();
     }
 
     // ------------------------------------------------------------------ from the world
@@ -102,10 +89,10 @@ public final class AreaCopy {
         private final Level level;
         private final int x0, z0, x1, z1;
         private int y0, y1;
-        private final boolean trimHeight, keepHeight, load;
+        private final boolean trimHeight, keepHeight, load, light;
         private final int cx0, cz0, across, wanted;
         private int sx, sy, sz;
-        private char[] cells;
+        private Cells cells;
         private java.util.BitSet read;
         private final Reference2IntOpenHashMap<BlockState> numbers = new Reference2IntOpenHashMap<>();
         private final List<BlockState> palette = new ArrayList<>();
@@ -118,9 +105,10 @@ public final class AreaCopy {
         private volatile int phase;
         private volatile int next;
         private int there, low = Integer.MAX_VALUE, high = Integer.MIN_VALUE;
+        private int ahead;
 
         /** Stops with a plain sentence when there is nothing to copy, or no room for it. */
-        public Capture(Level level, int x0, int y0, int z0, int x1, int y1, int z1, boolean trimHeight, boolean keepHeight, boolean load) {
+        public Capture(Level level, int x0, int y0, int z0, int x1, int y1, int z1, boolean trimHeight, boolean keepHeight, boolean load, boolean light) {
             this.level = level;
             this.x0 = x0;
             this.z0 = z0;
@@ -129,6 +117,7 @@ public final class AreaCopy {
             this.trimHeight = trimHeight;
             this.keepHeight = keepHeight;
             this.load = load;
+            this.light = light;
             this.y0 = Math.max(y0, level.getMinY());
             this.y1 = Math.min(y1, level.getMaxY());
             cx0 = x0 >> 4;
@@ -147,6 +136,20 @@ public final class AreaCopy {
             } else if (!load) {
                 for (int i = 0; i < wanted; i++) heights(level.getChunkSource().getChunkNow(cx0 + i % across, cz0 + i / across));
                 room();
+            }
+        }
+
+        /** Single player: this many of the chunks that come next are asked for ahead of time, so the game gets several at once. */
+        public Capture ahead(int chunks) {
+            ahead = chunks;
+            return this;
+        }
+
+        private void askAhead() {
+            if (!load || ahead <= 0 || !(level instanceof net.minecraft.server.level.ServerLevel world)) return;
+            for (int i = next, to = Math.min(wanted, next + 1 + ahead); i < to; i++) {
+                world.getChunkSource().addTicketWithRadius(net.minecraft.server.level.TicketType.PLAYER_SPAWN,
+                    new net.minecraft.world.level.ChunkPos(cx0 + i % across, cz0 + i / across), 0);
             }
         }
 
@@ -179,8 +182,7 @@ public final class AreaCopy {
             sy = y1 - y0 + 1;
             sz = z1 - z0 + 1;
             long count = (long) sx * sy * sz;
-            AreaCopy.room(count);
-            cells = new char[(int) count];
+            cells = Cells.make(count, light);
             read = new java.util.BitSet(sx * sz);
             phase = 1;
             next = 0;
@@ -194,6 +196,7 @@ public final class AreaCopy {
         /** Works for about this long. true = all of it is read. */
         public boolean step(long nanos) {
             long until = System.nanoTime() + nanos;
+            askAhead();
             if (phase == 0) {
                 while (next < wanted) {
                     heights(chunkAt(cx0 + next % across, cz0 + next / across));
@@ -201,7 +204,7 @@ public final class AreaCopy {
                     if (System.nanoTime() > until) {
                         // what is known so far already says whether there is room for it: no need to go through
                         // thousands of chunks first only to say no at the end
-                        if (low <= high) AreaCopy.room((long) (x1 - x0 + 1) * (z1 - z0 + 1) * (Math.min(y1, high) - Math.max(y0, low) + 1));
+                        if (low <= high) Cells.check((long) (x1 - x0 + 1) * (z1 - z0 + 1) * (Math.min(y1, high) - Math.max(y0, low) + 1), light);
                         return false;
                     }
                 }
@@ -249,7 +252,7 @@ public final class AreaCopy {
                                 last = state;
                                 lastNumber = number;
                             }
-                            cells[at] = (char) number;
+                            cells.set(at, (char) number);
                             blocks++;
                         }
                     }
@@ -264,6 +267,12 @@ public final class AreaCopy {
                     // this one block keeps its contents to itself; the block is still copied
                 }
             }
+        }
+
+        /** Given up, or written: cells held on disk give their file back. */
+        public void close() {
+            Cells c = cells;
+            if (c != null) c.close();
         }
 
         /** The finished copy. Stops with a plain sentence when it holds nothing. */
@@ -287,14 +296,14 @@ public final class AreaCopy {
     private AreaCopy trimmedHeight() {
         int layer = sizeX * sizeZ;
         int first = 0;
-        while (first < cells.length && cells[first] == 0) first++;
+        while (first < cells.length && cells.get(first) == 0) first++;
         int lastCell = cells.length - 1;
-        while (lastCell > first && cells[lastCell] == 0) lastCell--;
+        while (lastCell > first && cells.get(lastCell) == 0) lastCell--;
         int lowY = first / layer, highY = lastCell / layer;
         if (lowY == 0 && highY == sizeY - 1) return this;
         List<Held> moved = new ArrayList<>(held.size());
         for (Held h : held) moved.add(new Held(h.x(), h.y() - lowY, h.z(), h.data()));
-        return new AreaCopy(sizeX, highY - lowY + 1, sizeZ, from.above(lowY), keepHeight, Arrays.copyOfRange(cells, lowY * layer, (highY + 1) * layer),
+        return new AreaCopy(sizeX, highY - lowY + 1, sizeZ, from.above(lowY), keepHeight, cells.part(lowY * layer, (highY + 1) * layer),
             palette, moved, blocks);
     }
 
@@ -312,8 +321,7 @@ public final class AreaCopy {
         }
         int sx = x1 - x0 + 1, sy = y1 - y0 + 1, sz = z1 - z0 + 1;
         long count = (long) sx * sy * sz;
-        room(count);
-        char[] cells = new char[(int) count];
+        Cells cells = Cells.make(count, false);
         Reference2IntOpenHashMap<BlockState> numbers = new Reference2IntOpenHashMap<>();
         numbers.defaultReturnValue(-1);
         List<BlockState> palette = new ArrayList<>();
@@ -328,7 +336,7 @@ public final class AreaCopy {
                 numbers.put(e.getValue(), number);
             }
             BlockPos p = e.getKey();
-            cells[((p.getY() - y0) * sz + (p.getZ() - z0)) * sx + (p.getX() - x0)] = (char) number;
+            cells.set(((p.getY() - y0) * sz + (p.getZ() - z0)) * sx + (p.getX() - x0), (char) number);
             blocks++;
         }
         return new AreaCopy(sx, sy, sz, new BlockPos(x0, y0, z0), false, cells, palette, new ArrayList<>(), blocks);
@@ -345,7 +353,10 @@ public final class AreaCopy {
         for (int n = 2; Files.exists(file); n++) file = dir.resolve(base + "_" + n + ".schem");
         // the cells as numbers of 7 bits a byte (the top bit says "more follows"): first how long that gets
         long length = 0;
-        for (char c : cells) length += c < 128 ? 1 : c < 16384 ? 2 : 3;
+        for (int i = 0; i < cells.length; i++) {
+            char c = cells.get(i);
+            length += c < 128 ? 1 : c < 16384 ? 2 : 3;
+        }
         if (length > Integer.MAX_VALUE - 64) throw new IOException("Too big for one file - take fewer chunks");
         CompoundTag root = new CompoundTag();
         root.putInt("Version", 2);
@@ -390,12 +401,12 @@ public final class AreaCopy {
             out.writeInt((int) length);
             byte[] buffer = new byte[1 << 16];
             int o = 0;
-            for (char c : cells) {
+            for (int i = 0; i < cells.length; i++) {
                 if (o > buffer.length - 3) {
                     out.write(buffer, 0, o);
                     o = 0;
                 }
-                int number = c;
+                int number = cells.get(i);
                 while ((number & -128) != 0) {
                     buffer[o++] = (byte) (number & 127 | 128);
                     number >>>= 7;
@@ -426,10 +437,10 @@ public final class AreaCopy {
      */
     private static final class Parsed {
         final CompoundTag root = new CompoundTag();
-        char[] cells;
+        Cells cells;
     }
 
-    private static Parsed parse(java.io.InputStream stream) throws IOException {
+    private static Parsed parse(java.io.InputStream stream, boolean light) throws IOException {
         java.io.DataInputStream in = new java.io.DataInputStream(new java.io.BufferedInputStream(stream, 1 << 16));
         if (in.readByte() != Tag.TAG_COMPOUND) return null;
         in.readUTF();
@@ -445,8 +456,7 @@ public final class AreaCopy {
                 out.root.put(key, net.minecraft.nbt.TagTypes.getType(type).load(in, accounter));
                 continue;
             }
-            room(count);
-            char[] cells = new char[(int) count];
+            Cells cells = Cells.make(count, light);
             long left = in.readInt();
             byte[] buffer = new byte[1 << 16];
             int index = 0, value = 0, shift = 0;
@@ -461,7 +471,7 @@ public final class AreaCopy {
                         shift += 7;
                         continue;
                     }
-                    if (index < cells.length) cells[index++] = value >= 0 && value < Character.MAX_VALUE ? (char) value : Character.MAX_VALUE;
+                    if (index < cells.length) cells.set(index++, value >= 0 && value < Character.MAX_VALUE ? (char) value : Character.MAX_VALUE);
                     value = 0;
                     shift = 0;
                 }
@@ -471,15 +481,18 @@ public final class AreaCopy {
         return out;
     }
 
-    /** Reads a Sponge .schem file (version 2 or 3) straight into the small form. null = the file is another format. */
-    public static AreaCopy read(Path file) throws IOException {
+    /**
+     * Reads a Sponge .schem file (version 2 or 3) straight into the small form. null = the file is another format.
+     * light: the cells go into a file on disk instead of the game's memory (Low Impact).
+     */
+    public static AreaCopy read(Path file, boolean light) throws IOException {
         synchronized (Schematic.class) {
             Parsed parsed;
             try (java.io.InputStream in = new java.util.zip.GZIPInputStream(Files.newInputStream(file), 1 << 16)) {
-                parsed = parse(in);
+                parsed = parse(in, light);
             } catch (java.util.zip.ZipException notCompressed) {
                 try (java.io.InputStream in = Files.newInputStream(file)) {
-                    parsed = parse(in);
+                    parsed = parse(in, light);
                 }
             }
             if (parsed == null) return null;
@@ -514,19 +527,19 @@ public final class AreaCopy {
                 ours[Schematic.num(names.get(key))] = (char) palette.size();
                 palette.add(state);
             }
-            char[] cells = version == 2 ? parsed.cells : null;
+            Cells cells = version == 2 ? parsed.cells : null;
             long blocks = 0;
             if (cells != null) {
                 // read straight into place: only the numbers of the file still have to become ours
                 for (int i = 0; i < cells.length; i++) {
-                    char number = cells[i] < ours.length ? ours[cells[i]] : 0;
-                    cells[i] = number;
+                    char in = cells.get(i);
+                    char number = in < ours.length ? ours[in] : 0;
+                    if (number != in) cells.set(i, number);
                     if (number != 0) blocks++;
                 }
             } else {
                 byte[] data = blocksTag.get(version >= 3 ? "Data" : "BlockData") instanceof ByteArrayTag b ? b.getAsByteArray() : new byte[0];
-                room(count);
-                cells = new char[(int) count];
+                cells = Cells.make(count, light);
                 int index = 0, i = 0;
                 while (i < data.length && index < cells.length) {
                     int value = 0, shift = 0;
@@ -538,7 +551,7 @@ public final class AreaCopy {
                     } while ((b & 0x80) != 0 && i < data.length);
                     char number = value >= 0 && value < ours.length ? ours[value] : 0;
                     if (number != 0) {
-                        cells[index] = number;
+                        cells.set(index, number);
                         blocks++;
                     }
                     index++;

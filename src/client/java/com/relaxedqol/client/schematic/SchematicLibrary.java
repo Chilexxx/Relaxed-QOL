@@ -107,6 +107,41 @@ public final class SchematicLibrary {
         Minecraft.getInstance().execute(() -> report.accept(line));
     }
 
+    // ---------------------------------------------------------------- Low Impact
+
+    /**
+     * Low Impact (a setting of the menu entry, which hands it in here): copies and pastes are a little slower, and in
+     * return cost next to no memory - the cells of the copy lie in a file on disk instead of in the game's memory -
+     * and leave the frame rate alone: shorter slices, fewer chunks prepared at a time, and both give way at the
+     * first dip of the frame rate.
+     * A copy or paste works the way this stood when it started.
+     */
+    public static java.util.function.BooleanSupplier lowImpactOn = () -> false;
+    public static Consumer<Boolean> lowImpactSet = on -> {};
+
+    public static boolean lowImpact() {
+        return lowImpactOn.getAsBoolean();
+    }
+
+    /** "on" / "off", or null to switch over. The line to show. */
+    public static String setLowImpact(String want) {
+        boolean on = want == null ? !lowImpact() : want.equalsIgnoreCase("on") || want.equalsIgnoreCase("true") || want.equals("1");
+        lowImpactSet.accept(on);
+        return on ? "§aLow Impact on§7 - copies and pastes are a little slower, but use next to no memory and keep the frame rate steady. Counts from the next copy or paste."
+            : "§eLow Impact off§7 - copies and pastes at full speed.";
+    }
+
+    /**
+     * How many of the chunks that come next a job asks for ahead of time, at most. Getting a chunk - from the
+     * save, or made new where nobody has been - is what a paste or a single-player copy waits for most, and the
+     * game does that on its other threads: asked for one at a time they sit idle, asked for ahead of time they
+     * prepare several at once. Low Impact asks for a few only, so the other threads stay mostly free.
+     */
+    private static int aheadMost(boolean light) {
+        int threads = Runtime.getRuntime().availableProcessors();
+        return light ? Math.max(2, Math.min(6, threads / 2)) : Math.max(8, Math.min(48, threads * 2));
+    }
+
     // ---------------------------------------------------------------- a slice every tick
 
     static {
@@ -121,14 +156,14 @@ public final class SchematicLibrary {
         Copying c = copying;
         if (c != null && c.capture != null && !c.writing) {
             if (mc.level == null || (c.server == null && mc.level != c.level)) {
-                copying = null; // left the world it was copying
+                drop(c); // left the world it was copying
             } else if (c.server == null) {
-                advance(c, 6_000_000L); // on the game thread itself: 6 ms of a 50 ms tick
+                advance(c, c.light ? 3_000_000L : 6_000_000L); // on the game thread itself: 6 ms of a 50 ms tick (Low Impact: 3)
             } else if (!c.queued) {
                 c.queued = true;
                 c.server.execute(() -> {
                     try {
-                        advance(c, 15_000_000L);
+                        advance(c, c.light ? 8_000_000L : 20_000_000L);
                     } finally {
                         c.queued = false;
                     }
@@ -165,6 +200,7 @@ public final class SchematicLibrary {
         final net.minecraft.world.level.Level level;
         final String name;
         final Consumer<String> report;
+        final boolean light = lowImpact();
         volatile AreaCopy.Capture capture;
         volatile boolean queued;
         volatile boolean writing;
@@ -177,6 +213,16 @@ public final class SchematicLibrary {
         }
     }
 
+    /** Ends a copy that is not going to be written: what it has read so far is let go of (on the thread that reads). */
+    private static void drop(Copying c) {
+        if (copying == c) copying = null;
+        AreaCopy.Capture capture = c.capture;
+        if (capture == null) return;
+        if (c.server == null) capture.close();
+        else c.server.execute(capture::close);
+    }
+
+
     private static volatile Copying copying;
 
     /** "Copying: 43%", or null when no copy is being taken. */
@@ -184,14 +230,14 @@ public final class SchematicLibrary {
         Copying c = copying;
         if (c == null) return null;
         AreaCopy.Capture capture = c.capture;
-        return c.writing || capture == null ? "Writing the file" : "Copying: " + capture.percent() + "%";
+        return (c.writing || capture == null ? "Writing the file" : "Copying: " + capture.percent() + "%") + (c.light ? " (Low Impact)" : "");
     }
 
     /** Ends the copy that is being taken (nothing is written). */
     public static String stopCopy() {
         Copying c = copying;
         if (c == null || c.writing) return "§7No copy is being taken.";
-        copying = null;
+        drop(c);
         return "§eCopy stopped.";
     }
 
@@ -238,18 +284,20 @@ public final class SchematicLibrary {
             // single player: the world itself is read (on its own thread), so chests keep their contents
             Copying job = new Copying(server, world, name, report);
             copying = job;
-            server.execute(() -> open(job, () -> new AreaCopy.Capture(world, x0, y0, z0, x1, y1, z1, chunks, chunks, true)));
+            server.execute(() -> open(job, () -> new AreaCopy.Capture(world, x0, y0, z0, x1, y1, z1, chunks, chunks, true, job.light).ahead(aheadMost(job.light))));
         } else {
             net.minecraft.world.level.Level level = mc.level;
             Copying job = new Copying(null, level, name, report);
             copying = job;
-            open(job, () -> new AreaCopy.Capture(level, x0, y0, z0, x1, y1, z1, chunks, chunks, false));
+            open(job, () -> new AreaCopy.Capture(level, x0, y0, z0, x1, y1, z1, chunks, chunks, false, job.light));
         }
     }
 
     private static void open(Copying job, Supplier<AreaCopy.Capture> make) {
         try {
-            job.capture = make.get();
+            AreaCopy.Capture made = make.get();
+            job.capture = made;
+            if (copying != job) made.close(); // stopped before it began
         } catch (IllegalStateException e) {
             copying = null;
             tell(job.report, "§c" + e.getMessage());
@@ -267,6 +315,7 @@ public final class SchematicLibrary {
             if (!capture.step(nanos)) return;
         } catch (RuntimeException e) {
             copying = null;
+            capture.close();
             tell(job.report, "§cThe copy stopped: §f" + e.getMessage());
             return;
         }
@@ -286,9 +335,10 @@ public final class SchematicLibrary {
             } catch (IOException | RuntimeException e) {
                 line = "§cCould not save it: §f" + e.getMessage();
             } catch (OutOfMemoryError e) {
-                line = "§cNot enough memory to write that file - take fewer chunks, or give the game more memory.";
+                line = "§cNot enough memory to write that file - take fewer chunks, give the game more memory, or turn on Low Impact (.schem lowimpact).";
             } finally {
                 copying = null;
+                capture.close();
             }
             tell(job.report, line);
         }, "Relaxed-Schematic-Save");
@@ -311,7 +361,7 @@ public final class SchematicLibrary {
     public static String pasteState() {
         Paste job = pasting;
         if (job == null) return null;
-        return job.copy == null ? "Reading the file" : "Pasting: " + (int) (100L * job.chunkAt / Math.max(1, job.chunks.length)) + "%";
+        return (job.copy == null ? "Reading the file" : "Pasting: " + (int) (100L * job.chunkAt / Math.max(1, job.chunks.length)) + "%") + (job.light ? " (Low Impact)" : "");
     }
 
     public static String stopPaste() {
@@ -352,18 +402,20 @@ public final class SchematicLibrary {
         Paste job = new Paste(server, world, Math.floorMod(quarterTurns, 4), withAir, report);
         pasting = job;
         Thread t = new Thread(() -> {
+            AreaCopy copy = null;
             try {
-                AreaCopy copy = AreaCopy.read(file);
+                copy = AreaCopy.read(file, job.light);
                 if (copy == null) copy = AreaCopy.ofMap(Schematic.load(file).blocks); // another format: by way of the reader for it
                 BlockPos corner = at != null ? at : new BlockPos(feet.getX(), copy.keepHeight ? copy.from.getY() : feet.getY(), feet.getZ());
-                tell(report, "§7Pasting §f" + count(copy.blocks) + "§7 blocks at §f" + corner.toShortString() + "§7...");
+                tell(report, "§7Pasting §f" + count(copy.blocks) + "§7 blocks at §f" + corner.toShortString() + "§7" + (job.light ? " (Low Impact)" : "") + "...");
                 job.begin(copy, corner, feet);
             } catch (IOException | RuntimeException e) {
                 pasting = null;
+                if (copy != null) copy.close();
                 tell(report, "§cCould not paste it: §f" + e.getMessage());
             } catch (OutOfMemoryError e) {
                 pasting = null;
-                tell(report, "§cNot enough memory to paste that file - give the game more memory.");
+                tell(report, "§cNot enough memory to paste that file - give the game more memory, or turn on Low Impact (.schem lowimpact).");
             }
         }, "Relaxed-Schematic-Read");
         t.setDaemon(true);
@@ -376,10 +428,12 @@ public final class SchematicLibrary {
         MinecraftServer server = mc.getSingleplayerServer();
         ServerLevel world = server == null || mc.level == null || mc.player == null ? null : server.getLevel(mc.level.dimension());
         if (world == null) {
+            copy.close();
             report.accept("§ePaste works in single player only.");
             return;
         }
         if (pasting != null) {
+            copy.close();
             report.accept("§e" + pasteState() + " - §f.schem paste stop§e to end it.");
             return;
         }
@@ -411,9 +465,14 @@ public final class SchematicLibrary {
         long started;
         volatile boolean stop;
         volatile boolean queued;
-        // how long a slice may take, steered by the frame rate of the game window
-        volatile double millis = 6;
+        // Low Impact: short slices that give way as soon as the frame rate dips, and no pile of loaded chunks
+        final boolean light = lowImpact();
+        // how long a slice may take, and how many chunks are asked for ahead of time: both steered by the frame rate
+        volatile double millis = light ? 5 : 12;
         double best;
+        final int aheadMost = SchematicLibrary.aheadMost(light);
+        volatile int ahead = Math.max(2, aheadMost / 2);
+        int waits;
 
         Paste(MinecraftServer server, ServerLevel world, int turns, boolean withAir, Consumer<String> report) {
             this.server = server;
@@ -478,8 +537,22 @@ public final class SchematicLibrary {
          */
         void pace(int fps) {
             best = Math.max(fps, best * 0.9); // a frame rate that fell for another reason becomes the new normal after a while
-            if (fps < best * 0.7) millis = Math.max(3, millis * 0.6);
-            else if (fps > best * 0.9) millis = Math.min(25, millis * 1.25);
+            if (light) {
+                // gives way at the first dip, and takes a fifth of a tick at most
+                if (fps < best * 0.9) {
+                    millis = Math.max(2, millis * 0.6);
+                    ahead = Math.max(1, ahead / 2);
+                } else if (fps > best * 0.96) {
+                    millis = Math.min(10, millis * 1.25);
+                    ahead = Math.min(aheadMost, ahead + 1);
+                }
+            } else if (fps < best * 0.7) {
+                millis = Math.max(3, millis * 0.6);
+                ahead = Math.max(4, ahead / 2);
+            } else if (fps > best * 0.9) {
+                millis = Math.min(35, millis * 1.25);
+                ahead = Math.min(aheadMost, ahead + 4);
+            }
         }
 
         void step(long nanos) {
@@ -488,6 +561,7 @@ public final class SchematicLibrary {
                 work(nanos);
             } catch (RuntimeException e) {
                 pasting = null;
+                copy.close();
                 tell(report, "§cThe paste stopped: §f" + e);
             }
         }
@@ -495,13 +569,27 @@ public final class SchematicLibrary {
         private void work(long nanos) {
             long until = System.nanoTime() + nanos;
             AreaCopy c = copy;
-            char[] cells = c.cells;
+            Cells cells = c.cells;
             int sx = c.sizeX, layer = sx * c.sizeZ;
             // the layers of the file that lie inside the world
             int yFrom = Math.max(0, world.getMinY() - corner.getY()), yTo = Math.min(c.sizeY - 1, world.getMaxY() - corner.getY());
             BlockPos.MutableBlockPos p = new BlockPos.MutableBlockPos();
+            // the chunk in hand and the next ones: asked for now, so they are there (or on their way) when their turn comes
+            for (int i = chunkAt, to = Math.min(chunks.length, chunkAt + 1 + ahead); i < to && !stop; i++) {
+                world.getChunkSource().addTicketWithRadius(net.minecraft.server.level.TicketType.PLAYER_SPAWN,
+                    new net.minecraft.world.level.ChunkPos(net.minecraft.world.level.ChunkPos.getX(chunks[i]), net.minecraft.world.level.ChunkPos.getZ(chunks[i])), 0);
+            }
             while (chunkAt < chunks.length && !stop) {
                 int cx = net.minecraft.world.level.ChunkPos.getX(chunks[chunkAt]), cz = net.minecraft.world.level.ChunkPos.getZ(chunks[chunkAt]);
+                if (chunk == null) {
+                    chunk = world.getChunkSource().getChunkNow(cx, cz);
+                    if (chunk == null) {
+                        // on its way: the next tick finds it, and the world keeps ticking instead of standing and waiting
+                        if (++waits < 60) break;
+                        chunk = world.getChunk(cx, cz); // three seconds and still not there: fetched the plain way
+                    }
+                    waits = 0;
+                }
                 boolean late = false;
                 for (; column < 256 && !late; column++) {
                     int wx = (cx << 4) + (column & 15), wz = (cz << 4) + (column >> 4);
@@ -529,9 +617,8 @@ public final class SchematicLibrary {
                     int base = z * sx + x;
                     if (c.missing != null && c.missing.get(base)) continue; // its chunk was not loaded when copying: left as it is
                     for (int y = yFrom; y <= yTo; y++) {
-                        int number = cells[y * layer + base];
+                        int number = cells.get(y * layer + base);
                         if (number == 0 && !withAir) continue;
-                        if (chunk == null) chunk = world.getChunk(cx, cz); // only now: a chunk nothing goes into is not loaded for it
                         p.set(wx, corner.getY() + y, wz);
                         BlockState state = states[number];
                         if (chunk.getBlockState(p) == state) continue;
@@ -554,9 +641,11 @@ public final class SchematicLibrary {
             if (stop) {
                 if (chunk != null && chunkChanged) show(chunk);
                 pasting = null;
+                c.close();
                 tell(report, "§ePaste stopped at " + (int) (100L * chunkAt / Math.max(1, chunks.length)) + "% (" + count(changed) + " blocks changed).");
             } else if (chunkAt >= chunks.length) {
                 pasting = null;
+                c.close();
                 tell(report, "§aPasted §f" + count(c.blocks) + "§a blocks at §f" + corner.toShortString() + "§a in "
                     + String.format(Locale.ROOT, "%.1f", (System.currentTimeMillis() - started) / 1000.0) + " s§7 (" + count(changed) + " changed"
                     + (filled > 0 ? ", " + filled + " with contents" : "") + ").");
