@@ -331,56 +331,94 @@ public class InventoryTweaks extends Module {
     }
 
     /**
-     * "Card" look: a clean dark card with a calm header in the box's own colour (one even tint, no fade, no
-     * dot), the box's name in the smooth font at full size (sharp at any GUI scale), a small "12/27" chip on the
-     * right, then the items in softly sunken slots.
+     * "Card" look, in the client's style: the box itself and its name at the top with a small "12/27" chip, a slim
+     * bar showing how full it is in the box's own colour, then the items in rounded wells with a small count in the
+     * corner. Clean Style: frosted glass. Liquid Glass: a pane of glass with a soft sheen, the box colour glowing
+     * through the top and the lit glass edge on the card, the chip and every filled slot. Otherwise the theme's panel.
      */
-    private static final int CARD_HEADER = 17;
+    private static final int CARD_HEADER = 26;
 
     private static void drawCard(GuiGraphicsExtractor g, Font font, ItemStack box, String title, int used, List<ItemStack> items,
                                  int w, int h, int dye) {
         int tone = 0xFF000000 | (dye & 0xFFFFFF);
         Theme.refresh();
-        // In the client's style: see-through glass in Clean / Liquid Glass Style (with the glass finish), the theme's
-        // panel and roundness otherwise
+        boolean liquid = com.relaxedqol.client.gui.CleanStyle.liquid();
         boolean glass = com.relaxedqol.client.gui.CleanStyle.on();
-        int r = Math.max(2, Math.min(10, Theme.R_SURFACE));
+        int r = liquid ? 12 : glass ? 8 : Math.max(2, Math.min(10, Theme.R_SURFACE));
         Render2D.shadow(g, 0, 0, w, h, r);
-        Render2D.roundRect(g, 0, 0, w, h, r, glass ? Theme.withAlpha(Theme.PANEL, com.relaxedqol.client.gui.CleanStyle.liquid() ? 0.72f : 0.82f)
-            : Theme.withAlpha(Theme.panel(), 0.96f));
-        // Header: one even wash of the box colour and a hairline under it
-        Render2D.roundRectTop(g, 0, 0, w, CARD_HEADER, r, Theme.withAlpha(tone, glass ? 0.16f : 0.20f));
-        g.fill(1, CARD_HEADER, w - 1, CARD_HEADER + 1, Theme.withAlpha(tone, 0.45f));
-        if (glass) com.relaxedqol.client.gui.CleanStyle.gloss(g, 0, 0, w, h, r);
-        else Render2D.roundOutline(g, 0, 0, w, h, r, Theme.withAlpha(Theme.mix(tone, 0xFFFFFFFF, 0.25f), 0.55f));
+        if (glass) {
+            // Solid enough that the inventory behind does not show through the items
+            int body = Theme.mix(0xFF15161B, tone, liquid ? 0.12f : 0.06f);
+            Render2D.roundRect(g, 0, 0, w, h, r, Theme.withAlpha(body, liquid ? 0.93f : 0.94f));
+            // The box colour glowing through the top of the glass
+            int glowTo = Math.min(h - r, CARD_HEADER + 10);
+            Render2D.roundRectTop(g, 0, 0, w, r, r, Theme.withAlpha(tone, liquid ? 0.22f : 0.14f));
+            if (glowTo > r) g.fillGradient(0, r, w, glowTo, Theme.withAlpha(tone, liquid ? 0.22f : 0.14f), tone & 0x00FFFFFF);
+            com.relaxedqol.client.gui.CleanStyle.gloss(g, 0, 0, w, h, r);
+        } else {
+            Render2D.roundRect(g, 0, 0, w, h, r, Theme.withAlpha(Theme.panel(), 0.97f));
+            Render2D.roundRectTop(g, 0, 0, w, CARD_HEADER, r, Theme.withAlpha(tone, 0.18f));
+            Render2D.roundOutline(g, 0, 0, w, h, r, Theme.withAlpha(Theme.mix(tone, 0xFFFFFFFF, 0.25f), 0.55f));
+        }
 
+        // Header: the box, its name, the "12/27" chip
+        g.item(box, 6, 4);
+        boolean full = used >= SLOTS;
         String info = used + "/" + SLOTS;
-        int textY = (CARD_HEADER - 8) / 2 + 1;
         com.relaxedqol.client.util.SmoothFont.begin();
         try {
             int infoW = font.width(info);
-            int chipW = infoW + 8;
-            int chipX = w - 5 - chipW;
-            Render2D.roundRect(g, chipX, 3, chipW, CARD_HEADER - 6, (CARD_HEADER - 6) / 2,
-                used >= SLOTS ? 0x40F87171 : 0x26FFFFFF);
-            g.text(font, info, chipX + 4, textY, used >= SLOTS ? 0xFFFCA5A5 : 0xFFC9CDD9, false);
-            int room = chipX - 8 - 6;
+            int chipW = infoW + 10;
+            int chipH = 13;
+            int chipX = w - 7 - chipW;
+            int chipY = 5;
+            Render2D.roundRect(g, chipX, chipY, chipW, chipH, chipH / 2, full ? 0x40F87171 : glass ? 0x1CFFFFFF : 0x26FFFFFF);
+            com.relaxedqol.client.gui.CleanStyle.glassControl(g, chipX, chipY, chipW, chipH, chipH / 2, 1f);
+            g.text(font, info, chipX + 5, chipY + 3, full ? 0xFFFCA5A5 : 0xFFDCDFE8, false);
+            int room = chipX - 26 - 6;
             String shown = com.relaxedqol.client.gui.Theme.ellipsize(title, room, font::width);
-            g.text(font, shown, 7, textY, 0xFFF4F5FA, false);
+            g.text(font, shown, 26, 8, 0xFFF6F7FB, false);
         } finally {
             com.relaxedqol.client.util.SmoothFont.end();
         }
+        // How full it is: a slim bar in the box's colour
+        int barX = 8;
+        int barW = w - 16;
+        int barY = CARD_HEADER - 4;
+        Render2D.roundRect(g, barX, barY, barW, 2, 1, glass ? 0x18FFFFFF : 0x22000000);
+        int fill = Math.max(2, Math.round(barW * Math.min(1f, used / (float) SLOTS)));
+        Render2D.roundRect(g, barX, barY, fill, 2, 1, full ? 0xFFF87171 : Theme.mix(tone, 0xFFFFFFFF, 0.30f));
 
-        // Slots: softly sunken wells
+        // Slots: rounded wells with a little gap between them
         for (int i = 0; i < items.size(); i++) {
-            int cx = 7 + (i % 9) * 18;
-            int cy = CARD_HEADER + 5 + (i / 9) * 18;
+            int cx = 8 + (i % 9) * 18;
+            int cy = CARD_HEADER + 4 + (i / 9) * 18;
             ItemStack stack = items.get(i);
-            if (glass) Render2D.roundRect(g, cx - 1, cy - 1, 18, 18, 4, stack.isEmpty() ? 0x0CFFFFFF : 0x16FFFFFF);
-            else Render2D.roundRect(g, cx - 1, cy - 1, 18, 18, 3, stack.isEmpty() ? 0x1E000000 : 0x38000000);
-            if (stack.isEmpty()) continue;
-            g.item(stack, cx, cy);
-            g.itemDecorations(font, stack, cx, cy);
+            boolean empty = stack.isEmpty();
+            if (glass) {
+                Render2D.roundRect(g, cx, cy, 16, 16, 4, empty ? 0x09FFFFFF : 0x15FFFFFF);
+                if (!empty) com.relaxedqol.client.gui.CleanStyle.glassControl(g, cx, cy, 16, 16, 4, 0.75f);
+            } else {
+                Render2D.roundRect(g, cx, cy, 16, 16, 3, empty ? 0x1A000000 : 0x34000000);
+            }
+            if (empty) continue;
+            drawItem(g, font, stack, cx, cy);
+        }
+    }
+
+    /** An item with Minecraft's durability bar, but the stack count smaller and tucked into the corner. */
+    private static void drawItem(GuiGraphicsExtractor g, Font font, ItemStack stack, int x, int y) {
+        g.item(stack, x, y);
+        int count = stack.getCount();
+        g.itemDecorations(font, count > 1 ? stack.copyWithCount(1) : stack, x, y);
+        if (count > 1) {
+            String c = String.valueOf(count);
+            float sc = 0.75f;
+            g.pose().pushMatrix();
+            g.pose().translate(x + 17 - font.width(c) * sc, y + 16 - 8 * sc);
+            g.pose().scale(sc, sc);
+            g.text(font, c, 0, 0, 0xFFFFFFFF, true);
+            g.pose().popMatrix();
         }
     }
 

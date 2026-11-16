@@ -173,7 +173,7 @@ public abstract class WindowScreen extends Screen {
                 Render2D.roundRect(g, p.x(), p.y(), p.w(), p.h(), r, bg);
                 Render2D.roundOutline(g, p.x(), p.y(), p.w(), p.h(), r, edge);
                 // Liquid Glass: a little light on each button's top edge
-                if (CleanStyle.liquid() && p.w() > 2 * r + 2) g.fill(p.x() + r, p.y() + 1, p.x() + p.w() - r, p.y() + 2, 0x38FFFFFF);
+                CleanStyle.glassControl(g, p.x(), p.y(), p.w(), p.h(), r, active ? 1f : 0.6f + 0.4f * glow);
                 int text = active ? Theme.mix(color, 0xFFFFFFFF, 0.45f) : Theme.mix(Theme.TEXT_SECONDARY, Theme.TEXT, glow);
                 g.centeredText(font, shown, p.x() + p.w() / 2, p.y() + (p.h() - 8) / 2 + (pressed ? 1 : 0), text);
                 continue;

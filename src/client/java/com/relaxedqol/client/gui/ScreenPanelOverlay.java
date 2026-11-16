@@ -111,17 +111,13 @@ public final class ScreenPanelOverlay {
     /** Width of one button: room for the longest label (clamped so the panel stays compact). */
     private static int cellWidth(Font font, QuickPanel panel) {
         int widest = textW(font, "+ Set");
-        for (int i = 0; i < QuickPanel.BUTTONS; i++) widest = Math.max(widest, textW(font, shownLabel(panel, i)));
+        for (int i = 0; i < panel.count(); i++) widest = Math.max(widest, textW(font, shownLabel(panel, i)));
         // Every label fits (the panel grows with it, up to a sane maximum)
         return Math.max(Math.round(44 * effective), Math.min(Math.round(170 * effective), widest + 18));
     }
 
     private static int columns(QuickPanel panel) {
-        return switch (panel.layoutMode()) {
-            case "Row" -> QuickPanel.BUTTONS;
-            case "Column" -> 1;
-            default -> 2;
-        };
+        return panel.columnCount();
     }
 
     /** Width of a bold text (bold adds a pixel per letter). */
@@ -282,7 +278,7 @@ public final class ScreenPanelOverlay {
         int w = panelW(font, panel);
         int cw = (w - PAD * 2 - (cols - 1) * GAP) / cols;
         int top = y + HEADER_H + PAD;
-        for (int i = 0; i < QuickPanel.BUTTONS; i++) {
+        for (int i = 0; i < panel.count(); i++) {
             int col = i % cols;
             int row = i / cols;
             cells.add(new Cell(i, x + PAD + col * (cw + GAP), top + row * (CELL_H + GAP), cw, CELL_H));

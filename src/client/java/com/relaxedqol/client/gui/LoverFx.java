@@ -621,12 +621,9 @@ public final class LoverFx {
         int cx = x + w / 2;
         double beat = Math.max(0, Math.sin(t * 5.5)) * Math.max(0, Math.sin(t * 1.4));
         float bob = (float) (Math.sin(t * 1.2) * 1.5);
-        // Glow: a few soft rings in the shimmering accent
+        // Glow: one smooth round fade in the shimmering accent (stacked rings showed their edges as lines)
         int accent = accent(0);
-        for (int i = 4; i >= 1; i--) {
-            int r = 16 + i * 4;
-            Render2D.roundRect(g, cx - r, y + 24 - r + Math.round(bob), r * 2, r * 2, r, Theme.withAlpha(accent, hover ? 0.07f : 0.035f));
-        }
+        SoftGlow.draw(g, cx, y + 24 + bob, 40, Theme.withAlpha(accent, hover ? 0.32f : 0.18f));
         int s = 40 + (int) Math.round(beat * 4);
         image(g, HEART_LOGO, cx - s / 2, y + 24 - s / 2 + Math.round(bob), s, s, 0xFFFFFFFF);
         Component lover = Component.literal("Lᴏᴠᴇʀ").withStyle(ChatFormatting.BOLD);
@@ -655,6 +652,11 @@ public final class LoverFx {
             int color = Theme.withAlpha(i % 2 == 0 ? RED : CYAN, (0.16f + (float) seed * 0.22f) * fade);
             Render2D.icon(g, "heart_soft", (int) Math.round(x) - size / 2, (int) Math.round(y) - size / 2, size, color);
         }
+    }
+
+    /** The bobble heads on their own (Settings > Bobble Heads, outside LoverFella Mode). */
+    public static void drawBobbleHeads(GuiGraphicsExtractor g, Font font, List<String> names, int vw, int vh, int mx, int my) {
+        drawBobbleHeads(g, font, names, vw, vh, mx, my, t());
     }
 
     private static final int[] SHIRTS = {0xFF8E1B22, 0xFF1B6E8E, 0xFF5B2A86, 0xFF2E7D4F, 0xFF9C5B1B, 0xFF374151};
@@ -745,8 +747,11 @@ public final class LoverFx {
 
             // Name tag, under its own head
             int ly = vh - 13 - lift;
-            Render2D.roundRect(g, cx - lw / 2, ly, lw, 11, 5, Theme.withAlpha(NAVY, glass(0.92f)));
-            Render2D.roundOutline(g, cx - lw / 2, ly, lw, 11, 5, Theme.withAlpha(i % 2 == 0 ? RED : CYAN, 0.7f));
+            // In LoverFella Mode navy with red / cyan; otherwise the theme's own panel and accent
+            boolean lover = modeOn();
+            Render2D.roundRect(g, cx - lw / 2, ly, lw, 11, 5, lover ? Theme.withAlpha(NAVY, glass(0.92f)) : Theme.withAlpha(Theme.panel(), 0.92f));
+            Render2D.roundOutline(g, cx - lw / 2, ly, lw, 11, 5, lover ? Theme.withAlpha(i % 2 == 0 ? RED : CYAN, 0.7f)
+                : Theme.withAlpha(Theme.accent(), 0.6f));
             g.text(font, name, cx - lw / 2 + 4, ly + 2, near ? 0xFFFFFFFF : 0xFFD8E2F5, false);
         }
         g.pose().popMatrix();

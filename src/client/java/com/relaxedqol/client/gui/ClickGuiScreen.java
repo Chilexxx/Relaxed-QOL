@@ -718,6 +718,11 @@ public class ClickGuiScreen extends Screen {
 
         // LoverFella Mode: hearts, the LC logo and the bobble heads behind the panels
         if (LoverFx.on()) LoverFx.drawMenuBackdrop(graphics, font, vw, vh, mx, my, hudCardRects());
+        else {
+            // Settings > Bobble Heads: the same bobble heads in any style
+            java.util.List<String> heads = com.relaxedqol.client.module.modules.client.ClickGUI.bobbleHeadNames();
+            if (heads != null && !heads.isEmpty()) LoverFx.drawBobbleHeads(graphics, font, heads, vw, vh, mx, my);
+        }
 
         if (appMode()) {
             // Settings > Menu Layout: Window - one app-style window instead of the floating panels
@@ -852,8 +857,13 @@ public class ClickGuiScreen extends Screen {
         Render2D.shadow(g, panel.x, panel.y, panel.w, totalH, RADIUS);
 
         // Header
+        // Open: the body goes under the whole panel first, so no seam can open between the title bar and the body
+        // (at some menu scales the two clipped halves left a dark line across every heading)
         if (collapsed) Render2D.roundRect(g, panel.x, panel.y, panel.w, HEADER_H, RADIUS, Theme.header());
-        else Render2D.roundRectTop(g, panel.x, panel.y, panel.w, HEADER_H, RADIUS, Theme.header());
+        else {
+            Render2D.roundRect(g, panel.x, panel.y, panel.w, totalH, RADIUS, Theme.panel());
+            Render2D.roundRectTop(g, panel.x, panel.y, panel.w, HEADER_H, RADIUS, Theme.header());
+        }
         Render2D.headerSheen(g, panel.x, panel.y, panel.w, HEADER_H, RADIUS, accent, collapsed);
         Render2D.icon(g, panel.category.iconSprite(), panel.x + 7, panel.y + 5, 10, accent);
         CrispText.text(g, font, Component.literal(panel.category.getName().toUpperCase(Locale.ROOT)).withStyle(ChatFormatting.BOLD), panel.x + 20, panel.y + 6, Theme.TEXT_DIM);
@@ -872,7 +882,6 @@ public class ClickGuiScreen extends Screen {
         // Body
         int bodyTop = panel.bodyY;
         int bodyBottom = panel.bodyY + panel.bodyH;
-        Render2D.roundRectBottom(g, panel.x, bodyTop, panel.w, panel.bodyH, RADIUS, Theme.panel());
         if (CleanStyle.on()) CleanStyle.gloss(g, panel.x, panel.y, panel.w, totalH, RADIUS);
         g.enableScissor(panel.x, bodyTop, panel.x + panel.w, bodyBottom - 1);
 
@@ -989,6 +998,8 @@ public class ClickGuiScreen extends Screen {
         int fill = Theme.mix(Theme.withAlpha(0xFFFFFFFF, 0.07f * hov), Theme.withAlpha(accent, 0.16f + 0.06f * hov), on);
         Render2D.roundRect(g, x, y, w, h, ROW_R, fill);
         if (on > 0.01f) Render2D.roundRect(g, x + 2, y + 4, 2, h - 8, 1, Theme.withAlpha(accent, on));
+        // Liquid Glass: a lit module (or the one under the mouse) is a small pane of glass
+        CleanStyle.glassControl(g, x, y, w, h, ROW_R, Math.max(on, hov * 0.6f));
 
         int[] p = pills(row);
         boolean overBind = hover && mx >= p[0] && mx < p[0] + p[1];

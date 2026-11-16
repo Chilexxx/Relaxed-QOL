@@ -3,6 +3,7 @@
 	"package": "com.relaxedqol.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"GlyphRenderStateMixin",
 		"AbstractClientPlayerMixin",
 		"AbstractContainerScreenAccessor",
 		"ClientBrandRetrieverMixin",
