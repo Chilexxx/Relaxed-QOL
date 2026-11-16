@@ -28,6 +28,7 @@ public class ModuleManager {
     private final Map<Class<? extends Module>, Module> byClass = new ConcurrentHashMap<>();
 
     public ModuleManager() {
+        com.relaxedqol.client.schematic.PlaceMode.init(); // Schematics Library: placing a paste / picking an area, its tick and its card on screen
         // Render
         add(new HUD());
         add(new Radar());
@@ -62,6 +63,7 @@ public class ModuleManager {
 
         add(new com.relaxedqol.client.module.modules.misc.Notes());
         add(new com.relaxedqol.client.module.modules.misc.Notepad());
+        add(new com.relaxedqol.client.module.modules.misc.SchematicsLibrary());
         add(new com.relaxedqol.client.module.modules.render.ClearView());
         add(new com.relaxedqol.client.module.modules.render.Crosshair());
         add(new com.relaxedqol.client.module.modules.render.Hotbar());
@@ -90,6 +92,11 @@ public class ModuleManager {
     }
 
     public void onRender3D(float partialTicks) {
+        try {
+            com.relaxedqol.client.schematic.PlaceMode.render(); // the box being placed / the selected area
+        } catch (Exception e) {
+            RelaxedQolMod.LOGGER.error("Error rendering the placement preview", e);
+        }
         for (Module module : modules) {
             if (!module.isEnabled() || !module.getCategory().active() || com.relaxedqol.client.util.Privacy.hides(module)) continue;
             try {

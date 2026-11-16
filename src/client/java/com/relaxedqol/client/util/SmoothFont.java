@@ -301,7 +301,25 @@ public final class SmoothFont {
         return depth > 0 && enabled() && ready();
     }
 
+    private static int always;
+
+    /**
+     * Like {@link #begin}, but smooth even when the Smooth Font setting is off (only Vanilla Style keeps the pixel
+     * font): for a card that is made of small text and key caps, which the pixel font turns into a jumble. Not
+     * inside another begin / end. Close with {@link #endAlways}.
+     */
+    public static void beginAlways() {
+        always++;
+        begin();
+    }
+
+    public static void endAlways() {
+        end();
+        if (always > 0) always--;
+    }
+
     private static boolean enabled() {
+        if (always > 0) return !com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle();
         // Vanilla Style always uses Minecraft's pixel font
         // Clean Style always uses the smooth font, Vanilla Style always the pixel font
         if (com.relaxedqol.client.module.modules.client.ClickGUI.vanillaStyle()) return false;
